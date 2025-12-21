@@ -37,6 +37,14 @@ describe('parse', () => {
     const user = parse<User>('{"name":"John","age":30}')
     expect(user).toEqual({ name: 'John', age: 30 })
   })
+
+  it('applies reviver function', () => {
+    const result = parse('{"date":"2023-01-01"}', {
+      reviver: (key, value) => key === 'date' ? new Date(value as string) : value
+    })
+    expect(result).toHaveProperty('date')
+    expect((result as { date: Date }).date).toBeInstanceOf(Date)
+  })
 })
 
 describe('stringify', () => {
@@ -80,6 +88,21 @@ describe('tryParse', () => {
     expect(result).toBe(null)
     expect(error).toBeInstanceOf(Error)
   })
+
+  it('applies reviver function', () => {
+    const [result] = tryParse('{"date":"2023-01-01"}', (key, value) => 
+      key === 'date' ? new Date(value as string) : value
+    )
+    expect(result).toHaveProperty('date')
+    expect((result as { date: Date }).date).toBeInstanceOf(Date)
+  })
+
+  it('preserves original error message', () => {
+    const [result, error] = tryParse('{"invalid":}')
+    expect(result).toBe(null)
+    expect(error?.message).toBeTruthy()
+    expect(error?.message.length).toBeGreaterThan(0)
+  })
 })
 
 describe('tryStringify', () => {
@@ -101,6 +124,37 @@ describe('tryStringify', () => {
     const [result] = tryStringify({ a: 1 }, 2)
     expect(result).toBe('{\n  "a": 1\n}')
   })
+
+  it('accepts StringifyOptions', () => {
+    const [result] = tryStringify({ a: 1 }, { space: 2 })
+    expect(result).toBe('{\n  "a": 1\n}')
+  })
+
+  it('applies custom replacer via options', () => {
+    const [result] = tryStringify(
+      { password: 'secret', name: 'John' },
+      { replacer: (key, val) => key === 'password' ? '[REDACTED]' : val }
+    )
+    expect(result).toBe('{"password":"[REDACTED]","name":"John"}')
+  })
+
+  it('handles BigInt values', () => {
+    const [result, error] = tryStringify({ value: BigInt(123) })
+    expect(result).toBe(null)
+    expect(error).toBeInstanceOf(Error)
+    expect(error?.message).toContain('BigInt')
+  })
+
+  it('handles nested circular references', () => {
+    const a: Record<string, unknown> = { x: 1 }
+    const b: Record<string, unknown> = { y: 2 }
+    const c: Record<string, unknown> = { z: 3 }
+    a.b = b
+    b.c = c
+    c.a = a
+    const [result] = tryStringify(a)
+    expect(result).toContain('[Circular]')
+  })
 })
 
 describe('isValid', () => {
@@ -119,6 +173,12 @@ describe('isValid', () => {
     expect(isValid('')).toBe(false)
     expect(isValid('undefined')).toBe(false)
     expect(isValid("{'a':1}")).toBe(false)
+  })
+
+  it('handles unicode characters', () => {
+    expect(isValid('{"emoji":"😀"}')).toBe(true)
+    expect(isValid('{"text":"café"}')).toBe(true)
+    expect(isValid('{"text":"日本語"}')).toBe(true)
   })
 })
 
