@@ -63,6 +63,7 @@ type User = { name: string; age: number }
 
 const user = parse<User>('{"name":"John","age":30}')
 // user is User | null
+// Note: Type generics are compile-time only, not runtime validation
 ```
 
 ### Safe Stringify
@@ -173,13 +174,6 @@ parse('{"createdAt":"2023-01-01T10:00:00Z"}', {
 - Unix timestamps: `1704110400000` (milliseconds) or `1704110400` (seconds)
 
 **Not supported:** MM/DD/YYYY, DD/MM/YYYY, RFC 2822, or other custom formats. These should be handled separately if needed.
-
-## Known Limitations
-
-- **BigInt values**: Cannot be stringified (returns `null`). Use a replacer to convert to string.
-- **Symbols and Functions**: Silently omitted during stringify (standard JSON behavior).
-- **Empty strings**: `parse('')` returns `null` (empty string is not valid JSON).
-- **Type generics**: `parse<T>()` provides type hints only, not runtime validation.
 
 ## License
 
