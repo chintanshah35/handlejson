@@ -49,6 +49,11 @@ import { parse } from 'handlejson'
 parse('{"a":1}')           // { a: 1 }
 parse('invalid')           // null
 parse('invalid', { default: {} })  // {}
+
+// With reviver (like JSON.parse)
+parse('{"date":"2023-01-01"}', {
+  reviver: (key, value) => key === 'date' ? new Date(value) : value
+})
 ```
 
 ### Typed Parse
@@ -84,6 +89,7 @@ if (error) {
 }
 
 const [json, err] = tryStringify(obj)
+const [json2, err2] = tryStringify(obj, { space: 2, replacer: ... })
 ```
 
 ### Validation
@@ -119,13 +125,20 @@ minify('{\n  "a": 1\n}')            // '{"a":1}'
 
 | Function | Description |
 |----------|-------------|
-| `parse(str, options?)` | Safe parse, returns `null` on error |
-| `stringify(value, options?)` | Safe stringify, handles circular refs |
-| `tryParse(str)` | Returns `[result, error]` tuple |
-| `tryStringify(value)` | Returns `[result, error]` tuple |
+| `parse(str, options?)` | Safe parse, returns `null` on error. Options: `default`, `reviver` |
+| `stringify(value, options?)` | Safe stringify, handles circular refs. Options: `space`, `replacer` |
+| `tryParse(str, reviver?)` | Returns `[result, error]` tuple |
+| `tryStringify(value, options?)` | Returns `[result, error]` tuple. Options: `space`, `replacer` |
 | `isValid(str)` | Check if string is valid JSON |
 | `format(value, space?)` | Pretty-print with indentation |
 | `minify(value)` | Remove all whitespace |
+
+## Known Limitations
+
+- **BigInt values**: Cannot be stringified (returns `null`). Use a replacer to convert to string.
+- **Symbols and Functions**: Silently omitted during stringify (standard JSON behavior).
+- **Empty strings**: `parse('')` returns `null` (empty string is not valid JSON).
+- **Type generics**: `parse<T>()` provides type hints only, not runtime validation.
 
 ## License
 
