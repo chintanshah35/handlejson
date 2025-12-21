@@ -21,9 +21,6 @@ function createCircularReplacer(customReplacer?: (key: string, value: unknown) =
   }
 }
 
-/**
- * Safe parse that returns null (or a default) instead of throwing.
- */
 export function parse<T = unknown>(value: string, options?: ParseOptions<T>): T | null {
   try {
     return JSON.parse(value, options?.reviver) as T
@@ -32,9 +29,6 @@ export function parse<T = unknown>(value: string, options?: ParseOptions<T>): T 
   }
 }
 
-/**
- * Safe stringify that handles circular references.
- */
 export function stringify(value: unknown, options?: StringifyOptions): string | null {
   try {
     return JSON.stringify(value, createCircularReplacer(options?.replacer), options?.space)
