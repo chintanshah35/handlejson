@@ -26,7 +26,7 @@ function createCircularReplacer(customReplacer?: (key: string, value: unknown) =
  */
 export function parse<T = unknown>(value: string, options?: ParseOptions<T>): T | null {
   try {
-    return JSON.parse(value) as T
+    return JSON.parse(value, options?.reviver) as T
   } catch {
     return options?.default ?? null
   }
@@ -43,17 +43,19 @@ export function stringify(value: unknown, options?: StringifyOptions): string | 
   }
 }
 
-export function tryParse<T = unknown>(value: string): ParseResult<T> {
+export function tryParse<T = unknown>(value: string, reviver?: (key: string, value: unknown) => unknown): ParseResult<T> {
   try {
-    return [JSON.parse(value) as T, null]
+    return [JSON.parse(value, reviver) as T, null]
   } catch (error) {
     return [null, error instanceof Error ? error : new Error(String(error))]
   }
 }
 
-export function tryStringify(value: unknown, space?: number): StringifyResult {
+export function tryStringify(value: unknown, options?: StringifyOptions | number): StringifyResult {
   try {
-    const result = JSON.stringify(value, createCircularReplacer(), space)
+    const space = typeof options === 'number' ? options : options?.space
+    const replacer = typeof options === 'number' ? undefined : options?.replacer
+    const result = JSON.stringify(value, createCircularReplacer(replacer), space)
     return [result, null]
   } catch (error) {
     return [null, error instanceof Error ? error : new Error(String(error))]
