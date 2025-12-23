@@ -41,7 +41,7 @@ export function tryParse<T = unknown>(value: string, reviver?: (key: string, val
   try {
     return [JSON.parse(value, reviver) as T, null]
   } catch (error) {
-    return [null, error instanceof Error ? error : new Error(String(error))]
+    return [null, error as Error]
   }
 }
 
@@ -52,7 +52,7 @@ export function tryStringify(value: unknown, options?: StringifyOptions | number
     const result = JSON.stringify(value, createCircularReplacer(replacer), space)
     return [result, null]
   } catch (error) {
-    return [null, error instanceof Error ? error : new Error(String(error))]
+    return [null, error as Error]
   }
 }
 
