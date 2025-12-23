@@ -2,6 +2,12 @@
 
 > JSON, handled. Safe parse, stringify, format, validate.
 
+[![npm version](https://img.shields.io/npm/v/handlejson.svg)](https://www.npmjs.com/package/handlejson)
+[![npm downloads](https://img.shields.io/npm/dm/handlejson.svg)](https://www.npmjs.com/package/handlejson)
+[![node](https://img.shields.io/node/v/handlejson.svg)](https://nodejs.org)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/handlejson)](https://bundlephobia.com/package/handlejson)
+[![license](https://img.shields.io/npm/l/handlejson.svg)](https://github.com/chintanshah35/handlejson/blob/main/LICENSE)
+
 ## Install
 
 ```bash
