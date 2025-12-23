@@ -57,7 +57,7 @@ describe('stringify', () => {
     expect(stringify(null)).toBe('null')
   })
 
-  it('handles circular references', () => {
+  it('handles circular refs', () => {
     const obj: Record<string, unknown> = { a: 1 }
     obj.self = obj
     expect(stringify(obj)).toBe('{"a":1,"self":"[Circular]"}')
@@ -77,13 +77,13 @@ describe('stringify', () => {
 })
 
 describe('tryParse', () => {
-  it('returns [result, null] for valid JSON', () => {
+  it('works with valid JSON', () => {
     const [result, error] = tryParse('{"a":1}')
     expect(result).toEqual({ a: 1 })
     expect(error).toBe(null)
   })
 
-  it('returns [null, error] for invalid JSON', () => {
+  it('returns error for invalid JSON', () => {
     const [result, error] = tryParse('invalid')
     expect(result).toBe(null)
     expect(error).toBeInstanceOf(Error)
@@ -106,13 +106,13 @@ describe('tryParse', () => {
 })
 
 describe('tryStringify', () => {
-  it('returns [result, null] for valid values', () => {
+  it('works with valid values', () => {
     const [result, error] = tryStringify({ a: 1 })
     expect(result).toBe('{"a":1}')
     expect(error).toBe(null)
   })
 
-  it('handles circular references', () => {
+  it('handles circular refs', () => {
     const obj: Record<string, unknown> = { a: 1 }
     obj.self = obj
     const [result, error] = tryStringify(obj)
@@ -145,7 +145,7 @@ describe('tryStringify', () => {
     expect(error?.message).toContain('BigInt')
   })
 
-  it('handles nested circular references', () => {
+  it('handles nested circular refs', () => {
     const a: Record<string, unknown> = { x: 1 }
     const b: Record<string, unknown> = { y: 2 }
     const c: Record<string, unknown> = { z: 3 }
