@@ -8,6 +8,15 @@
 npm install handlejson
 ```
 
+## Quick Start
+
+```typescript
+import { parse, stringify } from 'handlejson'
+
+const data = parse('{"name":"John"}')  // { name: 'John' }
+const json = stringify({ name: 'John' })  // '{"name":"John"}'
+```
+
 ## Why?
 
 `JSON.parse` and `JSON.stringify` throw errors. You always need try-catch. This gets old.
@@ -63,7 +72,6 @@ type User = { name: string; age: number }
 
 const user = parse<User>('{"name":"John","age":30}')
 // user is User | null
-// Note: Type generics are compile-time only, not runtime validation
 ```
 
 ### Safe Stringify
@@ -73,13 +81,15 @@ import { stringify } from 'handlejson'
 
 stringify({ a: 1 })  // '{"a":1}'
 
-// Handles circular references
+// Handles circular refs
 const obj = { a: 1 }
 obj.self = obj
 stringify(obj)  // '{"a":1,"self":"[Circular]"}'
 ```
 
-### Error Tuple (Go-style)
+### Error Handling
+
+Get error details instead of just null:
 
 ```typescript
 import { tryParse, tryStringify } from 'handlejson'
@@ -90,7 +100,7 @@ if (error) {
 }
 
 const [json, err] = tryStringify(obj)
-const [json2, err2] = tryStringify(obj, { space: 2, replacer: ... })
+const [json2, err2] = tryStringify(obj, { space: 2 })
 ```
 
 ### Validation
@@ -100,7 +110,7 @@ import { isValid } from 'handlejson'
 
 isValid('{"a":1}')  // true
 isValid('invalid')  // false
-isValid('{a:1}')    // false (keys must be quoted)
+isValid('{a:1}')    // false
 ```
 
 ### Format (Pretty-print)
@@ -120,6 +130,19 @@ import { minify } from 'handlejson'
 
 minify({ a: 1, b: 2 })              // '{"a":1,"b":2}'
 minify('{\n  "a": 1\n}')            // '{"a":1}'
+```
+
+## Common Use Cases
+
+API responses:
+```typescript
+const response = await fetch('/api/user')
+const user = parse(await response.text(), { default: {} })
+```
+
+LocalStorage:
+```typescript
+const saved = parse(localStorage.getItem('data'), { default: null })
 ```
 
 ## API
