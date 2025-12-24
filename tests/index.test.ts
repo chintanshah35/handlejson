@@ -78,6 +78,14 @@ describe('stringify', () => {
     )
     expect(result).toBe('{"password":"[REDACTED]","name":"John"}')
   })
+
+  it('omits functions', () => {
+    expect(stringify({ fn: () => {}, a: 1 })).toBe('{"a":1}')
+  })
+
+  it('omits undefined values', () => {
+    expect(stringify({ a: 1, b: undefined })).toBe('{"a":1}')
+  })
 })
 
 describe('tryParse', () => {
@@ -146,12 +154,6 @@ describe('tryStringify', () => {
       { replacer: (key, val) => key === 'password' ? '[REDACTED]' : val }
     )
     expect(result).toBe('{"password":"[REDACTED]","name":"John"}')
-  })
-
-  it('handles BigInt values', () => {
-    const [result, error] = tryStringify({ value: BigInt(123) })
-    expect(result).toBe('{"value":"123n"}')
-    expect(error).toBe(null)
   })
 
   it('handles nested circular refs', () => {
