@@ -57,10 +57,14 @@ describe('stringify', () => {
     expect(stringify(null)).toBe('null')
   })
 
-  it('handles circular refs', () => {
+  it('handles circular ref', () => {
     const obj: Record<string, unknown> = { a: 1 }
     obj.self = obj
     expect(stringify(obj)).toBe('{"a":1,"self":"[Circular]"}')
+  })
+
+  it('handles BigInt values', () => {
+    expect(stringify({ value: BigInt(123) })).toBe('{"value":"123n"}')
   })
 
   it('applies custom spacing', () => {
@@ -125,6 +129,12 @@ describe('tryStringify', () => {
     expect(result).toBe('{\n  "a": 1\n}')
   })
 
+  it('handles BigInt values', () => {
+    const [result, error] = tryStringify({ value: BigInt(123) })
+    expect(result).toBe('{"value":"123n"}')
+    expect(error).toBe(null)
+  })
+
   it('accepts StringifyOptions', () => {
     const [result] = tryStringify({ a: 1 }, { space: 2 })
     expect(result).toBe('{\n  "a": 1\n}')
@@ -140,9 +150,8 @@ describe('tryStringify', () => {
 
   it('handles BigInt values', () => {
     const [result, error] = tryStringify({ value: BigInt(123) })
-    expect(result).toBe(null)
-    expect(error).toBeInstanceOf(Error)
-    expect(error?.message).toContain('BigInt')
+    expect(result).toBe('{"value":"123n"}')
+    expect(error).toBe(null)
   })
 
   it('handles nested circular refs', () => {
