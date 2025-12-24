@@ -6,12 +6,15 @@ import type {
   StringifyResult 
 } from './types'
 
-// Shared replacer that handles circular references
+// Shared replacer that handles circular references and BigInt
 function createCircularReplacer(customReplacer?: (key: string, value: unknown) => unknown) {
   const seen = new WeakSet()
   return (key: string, value: unknown) => {
     if (customReplacer) {
       value = customReplacer(key, value)
+    }
+    if (typeof value === 'bigint') {
+      return value.toString() + 'n'
     }
     if (typeof value === 'object' && value !== null) {
       if (seen.has(value)) return '[Circular]'
