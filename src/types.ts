@@ -1,11 +1,15 @@
+export type DateSerializationMode = 'iso' | 'timestamp'
+
 export type ParseOptions<T = unknown> = {
   default?: T
   reviver?: (key: string, value: unknown) => unknown
+  dates?: boolean | DateSerializationMode
 }
 
 export type StringifyOptions = {
   space?: number
   replacer?: (key: string, value: unknown) => unknown
+  dates?: boolean | DateSerializationMode
 }
 
 export type FormatOptions = {
