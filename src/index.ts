@@ -51,9 +51,48 @@ function createCircularReplacer(
   }
 }
 
+// Create reviver that handles date deserialization
+function createDateReviver(
+  customReviver?: (key: string, value: unknown) => unknown,
+  dateMode?: boolean | DateSerializationMode
+): (key: string, value: unknown) => unknown {
+  const datesEnabled = dateMode !== undefined && dateMode !== false
+  
+  return (key: string, value: unknown) => {
+    if (datesEnabled && typeof value === 'string') {
+      // Try ISO 8601 format
+      const isoMatch = value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/)
+      if (isoMatch) {
+        const date = new Date(value)
+        if (!isNaN(date.getTime())) {
+          const result = customReviver ? customReviver(key, date) : date
+          return result
+        }
+      }
+    }
+    
+    if (datesEnabled && typeof value === 'number') {
+      // Could be a timestamp, but we can't reliably detect this
+      // Only parse if explicitly using timestamp mode
+      if (dateMode === 'timestamp' && value > 0 && value < 9999999999999) {
+        const date = new Date(value)
+        if (!isNaN(date.getTime())) {
+          const result = customReviver ? customReviver(key, date) : date
+          return result
+        }
+      }
+    }
+    
+    return customReviver ? customReviver(key, value) : value
+  }
+}
+
 export function parse<T = unknown>(value: string, options?: ParseOptions<T>): T | null {
   try {
-    return JSON.parse(value, options?.reviver) as T
+    const reviver = options?.dates || options?.reviver
+      ? createDateReviver(options?.reviver, options?.dates)
+      : options?.reviver
+    return JSON.parse(value, reviver) as T
   } catch {
     return options?.default ?? null
   }
@@ -71,9 +110,16 @@ export function stringify(value: unknown, options?: StringifyOptions): string | 
   }
 }
 
-export function tryParse<T = unknown>(value: string, reviver?: (key: string, value: unknown) => unknown): ParseResult<T> {
+export function tryParse<T = unknown>(
+  value: string, 
+  reviver?: (key: string, value: unknown) => unknown,
+  dates?: boolean | DateSerializationMode
+): ParseResult<T> {
   try {
-    return [JSON.parse(value, reviver) as T, null]
+    const finalReviver = dates || reviver
+      ? createDateReviver(reviver, dates)
+      : reviver
+    return [JSON.parse(value, finalReviver) as T, null]
   } catch (error) {
     return [null, error as Error]
   }
