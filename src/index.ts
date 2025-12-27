@@ -3,23 +3,50 @@ import type {
   StringifyOptions, 
   FormatOptions,
   ParseResult,
-  StringifyResult 
+  StringifyResult,
+  DateSerializationMode
 } from './types'
 
-// Shared replacer that handles circular references and BigInt
-function createCircularReplacer(customReplacer?: (key: string, value: unknown) => unknown) {
+// Check if value is a Date object
+function isDate(value: unknown): value is Date {
+  return value instanceof Date
+}
+
+// Serialize date based on mode
+function serializeDate(date: Date, mode: DateSerializationMode): string | number {
+  if (mode === 'timestamp') {
+    return date.getTime()
+  }
+  return date.toISOString()
+}
+
+// Shared replacer that handles circular references, BigInt, and Dates
+function createCircularReplacer(
+  customReplacer?: (key: string, value: unknown) => unknown,
+  dateMode?: boolean | DateSerializationMode
+) {
   const seen = new WeakSet()
+  const datesEnabled = dateMode !== undefined && dateMode !== false
+  const mode: DateSerializationMode = dateMode === true ? 'iso' : (dateMode || 'iso')
+  
   return (key: string, value: unknown) => {
     if (customReplacer) {
       value = customReplacer(key, value)
     }
+    
+    if (datesEnabled && isDate(value)) {
+      return serializeDate(value, mode)
+    }
+    
     if (typeof value === 'bigint') {
       return value.toString() + 'n'
     }
+    
     if (typeof value === 'object' && value !== null) {
       if (seen.has(value)) return '[Circular]'
       seen.add(value)
     }
+    
     return value
   }
 }
@@ -34,7 +61,11 @@ export function parse<T = unknown>(value: string, options?: ParseOptions<T>): T 
 
 export function stringify(value: unknown, options?: StringifyOptions): string | null {
   try {
-    return JSON.stringify(value, createCircularReplacer(options?.replacer), options?.space)
+    return JSON.stringify(
+      value, 
+      createCircularReplacer(options?.replacer, options?.dates), 
+      options?.space
+    )
   } catch {
     return null
   }
@@ -52,7 +83,8 @@ export function tryStringify(value: unknown, options?: StringifyOptions | number
   try {
     const space = typeof options === 'number' ? options : options?.space
     const replacer = typeof options === 'number' ? undefined : options?.replacer
-    const result = JSON.stringify(value, createCircularReplacer(replacer), space)
+    const dates = typeof options === 'number' ? undefined : options?.dates
+    const result = JSON.stringify(value, createCircularReplacer(replacer, dates), space)
     return [result, null]
   } catch (error) {
     return [null, error as Error]
