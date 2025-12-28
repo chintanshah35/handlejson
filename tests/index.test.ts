@@ -45,6 +45,37 @@ describe('parse', () => {
     expect(result).toHaveProperty('date')
     expect((result as { date: Date }).date).toBeInstanceOf(Date)
   })
+
+  it('deserializes ISO date strings when dates enabled', () => {
+    const result = parse('{"createdAt":"2023-01-01T10:00:00Z"}', { dates: true })
+    expect(result).toHaveProperty('createdAt')
+    expect((result as { createdAt: Date }).createdAt).toBeInstanceOf(Date)
+  })
+
+  it('deserializes ISO date strings with milliseconds', () => {
+    const result = parse('{"createdAt":"2023-01-01T10:00:00.123Z"}', { dates: true })
+    expect(result).toHaveProperty('createdAt')
+    expect((result as { createdAt: Date }).createdAt).toBeInstanceOf(Date)
+  })
+
+  it('does not deserialize non-date strings when dates enabled', () => {
+    const result = parse('{"name":"John","email":"john@example.com"}', { dates: true })
+    expect((result as { name: string }).name).toBe('John')
+    expect((result as { email: string }).email).toBe('john@example.com')
+  })
+
+  it('handles date deserialization with custom reviver', () => {
+    const result = parse('{"date":"2023-01-01T10:00:00Z"}', {
+      dates: true,
+      reviver: (key, value) => key === 'date' && value instanceof Date ? new Date(value.getTime() + 1000) : value
+    })
+    expect((result as { date: Date }).date).toBeInstanceOf(Date)
+  })
+
+  it('does not deserialize dates when dates disabled', () => {
+    const result = parse('{"createdAt":"2023-01-01T10:00:00Z"}', { dates: false })
+    expect((result as { createdAt: string }).createdAt).toBe('2023-01-01T10:00:00Z')
+  })
 })
 
 describe('stringify', () => {
@@ -86,6 +117,43 @@ describe('stringify', () => {
   it('omits undefined values', () => {
     expect(stringify({ a: 1, b: undefined })).toBe('{"a":1}')
   })
+
+  it('serializes Date objects to ISO strings when dates enabled', () => {
+    const date = new Date('2023-01-01T10:00:00Z')
+    const result = stringify({ createdAt: date }, { dates: true })
+    expect(result).toBe('{"createdAt":"2023-01-01T10:00:00.000Z"}')
+  })
+
+  it('serializes Date objects to timestamps when dates is timestamp', () => {
+    const date = new Date('2023-01-01T10:00:00Z')
+    const result = stringify({ createdAt: date }, { dates: 'timestamp' })
+    expect(result).toContain('"createdAt":')
+    const parsed = JSON.parse(result!)
+    expect(typeof parsed.createdAt).toBe('number')
+  })
+
+  it('does not serialize Date objects when dates disabled', () => {
+    const date = new Date('2023-01-01T10:00:00Z')
+    const result = stringify({ createdAt: date }, { dates: false })
+    expect(result).toBe('{"createdAt":{}}')
+  })
+
+  it('handles Date objects in arrays', () => {
+    const dates = [new Date('2023-01-01T10:00:00Z'), new Date('2023-01-02T10:00:00Z')]
+    const result = stringify({ dates }, { dates: true })
+    expect(result).toContain('"dates":["2023-01-01T10:00:00.000Z","2023-01-02T10:00:00.000Z"]')
+  })
+
+  it('handles Date with custom replacer', () => {
+    const date = new Date('2023-01-01T10:00:00Z')
+    // Date serialization happens, then custom replacer can modify the string
+    const result = stringify({ createdAt: date }, {
+      dates: true,
+      replacer: (key, value) => key === 'createdAt' && typeof value === 'string' && value.includes('2023') ? 'custom' : value
+    })
+    // Custom replacer can modify the serialized string
+    expect(result).toBe('{"createdAt":"custom"}')
+  })
 })
 
 describe('tryParse', () => {
@@ -107,6 +175,11 @@ describe('tryParse', () => {
     )
     expect(result).toHaveProperty('date')
     expect((result as { date: Date }).date).toBeInstanceOf(Date)
+  })
+
+  it('deserializes ISO date strings with dates option', () => {
+    const [result] = tryParse('{"createdAt":"2023-01-01T10:00:00Z"}', undefined, true)
+    expect((result as { createdAt: Date }).createdAt).toBeInstanceOf(Date)
   })
 
   it('preserves original error message', () => {
@@ -154,6 +227,12 @@ describe('tryStringify', () => {
       { replacer: (key, val) => key === 'password' ? '[REDACTED]' : val }
     )
     expect(result).toBe('{"password":"[REDACTED]","name":"John"}')
+  })
+
+  it('serializes Date objects with dates option', () => {
+    const date = new Date('2023-01-01T10:00:00Z')
+    const [result] = tryStringify({ createdAt: date }, { dates: true })
+    expect(result).toContain('"createdAt":"2023-01-01T10:00:00.000Z"')
   })
 
   it('handles nested circular refs', () => {
