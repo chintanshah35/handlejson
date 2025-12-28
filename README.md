@@ -165,21 +165,36 @@ const saved = parse(localStorage.getItem('data'), { default: null })
 
 ## Date Handling
 
-Need to convert date strings? Use a reviver:
+Built-in date serialization and deserialization:
 
 ```typescript
+import { parse, stringify } from 'handlejson'
+
+// Serialize Date objects to ISO strings
+const date = new Date('2023-01-01T10:00:00Z')
+stringify({ createdAt: date }, { dates: true })
+// → '{"createdAt":"2023-01-01T10:00:00.000Z"}'
+
+// Deserialize ISO date strings to Date objects
+parse('{"createdAt":"2023-01-01T10:00:00Z"}', { dates: true })
+// → { createdAt: Date }
+
+// With custom reviver (for advanced cases)
 parse('{"createdAt":"2023-01-01T10:00:00Z"}', {
+  dates: true,
   reviver: (key, value) => {
-    if (key.endsWith('At') && typeof value === 'string') {
-      const date = new Date(value)
-      return isNaN(date.getTime()) ? value : date
+    if (key === 'createdAt' && value instanceof Date) {
+      return new Date(value.getTime() + 1000)
     }
     return value
   }
 })
 ```
 
-Works with ISO 8601 and Unix timestamps. Other formats need custom handling.
+The `dates` option:
+- `dates: true` - Serialize Date objects to ISO strings, deserialize ISO strings to Date objects
+- `dates: false` - Use native JSON.stringify behavior (default)
+- Works with ISO 8601 format strings
 
 ## License
 
