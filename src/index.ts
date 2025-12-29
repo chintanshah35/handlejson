@@ -6,6 +6,7 @@ import type {
   StringifyResult,
   DateSerializationMode
 } from './types'
+import { validate } from './validate'
 
 // Check if value is a Date object
 function isDate(value: unknown): value is Date {
@@ -34,9 +35,13 @@ function createCircularReplacer(
       value = customReplacer(key, value)
     }
     
+    // If custom replacer returned a non-Date, use that
+    // Otherwise, if dates enabled and value is Date, serialize it
     if (datesEnabled && isDate(value)) {
       return serializeDate(value, mode)
     }
+    
+    // If dates disabled and value is Date, let JSON.stringify handle it (returns ISO string)
     
     if (typeof value === 'bigint') {
       return value.toString() + 'n'
@@ -60,21 +65,9 @@ function createDateReviver(
   
   return (key: string, value: unknown) => {
     if (datesEnabled && typeof value === 'string') {
-      // Try ISO 8601 format
-      const isoMatch = value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/)
-      if (isoMatch) {
-        const date = new Date(value)
-        if (!isNaN(date.getTime())) {
-          const result = customReviver ? customReviver(key, date) : date
-          return result
-        }
-      }
-    }
-    
-    if (datesEnabled && typeof value === 'number') {
-      // Could be a timestamp, but we can't reliably detect this
-      // Only parse if explicitly using timestamp mode
-      if (dateMode === 'timestamp' && value > 0 && value < 9999999999999) {
+      // Try ISO 8601 format (e.g., "2023-01-01T10:00:00Z" or "2023-01-01T10:00:00.000Z")
+      const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})?$/
+      if (isoDateRegex.test(value)) {
         const date = new Date(value)
         if (!isNaN(date.getTime())) {
           const result = customReviver ? customReviver(key, date) : date
@@ -92,7 +85,17 @@ export function parse<T = unknown>(value: string, options?: ParseOptions<T>): T 
     const reviver = options?.dates || options?.reviver
       ? createDateReviver(options?.reviver, options?.dates)
       : options?.reviver
-    return JSON.parse(value, reviver) as T
+    const parsed = JSON.parse(value, reviver) as T
+    
+    // Validate schema if provided
+    if (options?.schema) {
+      const [valid, error] = validate(parsed, options.schema)
+      if (!valid) {
+        throw error
+      }
+    }
+    
+    return parsed
   } catch {
     return options?.default ?? null
   }
