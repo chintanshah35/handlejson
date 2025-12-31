@@ -309,3 +309,71 @@ describe('minify', () => {
   })
 })
 
+describe('schema validation', () => {
+  it('validates simple schema', () => {
+    const schema = { name: 'string', age: 'number' }
+    const result = parse('{"name":"John","age":30}', { schema })
+    expect(result).toEqual({ name: 'John', age: 30 })
+  })
+
+  it('returns null when schema validation fails', () => {
+    const schema = { name: 'string', age: 'number' }
+    const result = parse('{"name":"John","age":"30"}', { schema })
+    expect(result).toBe(null)
+  })
+
+  it('returns default when schema validation fails', () => {
+    const schema = { name: 'string', age: 'number' }
+    const result = parse('{"name":"John","age":"30"}', { schema, default: {} })
+    expect(result).toEqual({})
+  })
+
+  it('validates nested schema', () => {
+    const schema = {
+      name: 'string',
+      address: {
+        street: 'string',
+        zip: 'number'
+      }
+    }
+    const result = parse('{"name":"John","address":{"street":"Main St","zip":12345}}', { schema })
+    expect(result).toEqual({ name: 'John', address: { street: 'Main St', zip: 12345 } })
+  })
+
+  it('validates array type', () => {
+    const schema = { tags: 'array' }
+    const result = parse('{"tags":["a","b","c"]}', { schema })
+    expect(result).toEqual({ tags: ['a', 'b', 'c'] })
+  })
+
+  it('validates boolean type', () => {
+    const schema = { active: 'boolean' }
+    const result = parse('{"active":true}', { schema })
+    expect(result).toEqual({ active: true })
+  })
+
+  it('validates object type', () => {
+    const schema = { metadata: 'object' }
+    const result = parse('{"metadata":{"key":"value"}}', { schema })
+    expect(result).toEqual({ metadata: { key: 'value' } })
+  })
+
+  it('fails validation for wrong array type', () => {
+    const schema = { tags: 'array' }
+    const result = parse('{"tags":"not-array"}', { schema })
+    expect(result).toBe(null)
+  })
+
+  it('fails validation for nested schema errors', () => {
+    const schema = {
+      name: 'string',
+      address: {
+        street: 'string',
+        zip: 'number'
+      }
+    }
+    const result = parse('{"name":"John","address":{"street":"Main St","zip":"12345"}}', { schema })
+    expect(result).toBe(null)
+  })
+})
+
