@@ -26,3 +26,15 @@ export type ParseResult<T> = [T, null] | [null, Error]
 export type StringifyResult = [string, null] | [null, Error]
 export type ValidationResult = [true, null] | [false, Error]
 
+export type StreamParseOptions = {
+  chunkSize?: number
+  onProgress?: (parsed: unknown) => void
+  onError?: (error: Error) => void
+}
+
+export type StreamParseResult<T> = {
+  data: T | null
+  error: Error | null
+  complete: boolean
+}
+
