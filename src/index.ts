@@ -4,7 +4,12 @@ import type {
   FormatOptions,
   ParseResult,
   StringifyResult,
-  DateSerializationMode
+  DateSerializationMode,
+  Schema,
+  SchemaType,
+  ValidationResult,
+  StreamParseOptions,
+  StreamParseResult
 } from './types'
 import { validate } from './validate'
 
@@ -169,10 +174,18 @@ export function minify(value: string | unknown): string | null {
   return stringify(value)
 }
 
+export { parseStream } from './stream'
+
 export type { 
   ParseOptions, 
   StringifyOptions, 
   FormatOptions,
   ParseResult,
-  StringifyResult 
+  StringifyResult,
+  Schema,
+  SchemaType,
+  ValidationResult,
+  StreamParseOptions,
+  StreamParseResult,
+  DateSerializationMode
 }
