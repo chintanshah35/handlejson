@@ -155,13 +155,14 @@ const saved = parse(localStorage.getItem('data'), { default: null })
 
 | Function | Description |
 |----------|-------------|
-| `parse(str, options?)` | Safe parse, returns `null` on error. Options: `default`, `reviver` |
-| `stringify(value, options?)` | Safe stringify, handles circular refs. Options: `space`, `replacer` |
-| `tryParse(str, reviver?)` | Returns `[result, error]` tuple |
-| `tryStringify(value, options?)` | Returns `[result, error]` tuple. Options: `space`, `replacer` |
+| `parse(str, options?)` | Safe parse, returns `null` on error. Options: `default`, `reviver`, `dates`, `schema` |
+| `stringify(value, options?)` | Safe stringify, handles circular refs. Options: `space`, `replacer`, `dates` |
+| `tryParse(str, reviver?, dates?)` | Returns `[result, error]` tuple |
+| `tryStringify(value, options?)` | Returns `[result, error]` tuple. Options: `space`, `replacer`, `dates` |
 | `isValid(str)` | Check if string is valid JSON |
 | `format(value, space?)` | Pretty-print with indentation |
 | `minify(value)` | Remove all whitespace |
+| `parseStream(stream, options?)` | Parse large JSON in chunks. Options: `chunkSize`, `onProgress`, `onError` |
 
 ## Date Handling
 
@@ -195,6 +196,63 @@ The `dates` option:
 - `dates: true` - Serialize Date objects to ISO strings, deserialize ISO strings to Date objects
 - `dates: false` - Use native JSON.stringify behavior (default)
 - Works with ISO 8601 format strings
+
+## Schema Validation
+
+Validate JSON structure with simple schema:
+
+```typescript
+import { parse } from 'handlejson'
+
+// Simple type validation
+const schema = { name: 'string', age: 'number', active: 'boolean' }
+const user = parse('{"name":"John","age":30,"active":true}', { schema })
+// → { name: 'John', age: 30, active: true }
+
+// Returns null if validation fails
+const invalid = parse('{"name":"John","age":"30"}', { schema })
+// → null (age should be number, got string)
+
+// Nested schema validation
+const nestedSchema = {
+  name: 'string',
+  address: {
+    street: 'string',
+    zip: 'number'
+  }
+}
+const data = parse('{"name":"John","address":{"street":"Main St","zip":12345}}', { schema: nestedSchema })
+// → { name: 'John', address: { street: 'Main St', zip: 12345 } }
+```
+
+Schema types: `'string'`, `'number'`, `'boolean'`, `'object'`, `'array'`
+
+## Stream Parsing
+
+Parse large JSON files in chunks:
+
+```typescript
+import { parseStream } from 'handlejson'
+
+// String input
+const result = await parseStream('{"name":"John","age":30}')
+// → { data: { name: 'John', age: 30 }, error: null, complete: true }
+
+// ReadableStream input
+const response = await fetch('/api/large-data.json')
+const streamResult = await parseStream(response.body!, {
+  onProgress: (parsed) => console.log('Progress:', parsed),
+  onError: (error) => console.error('Error:', error)
+})
+
+if (streamResult.complete) {
+  console.log('Data:', streamResult.data)
+} else {
+  console.error('Failed:', streamResult.error)
+}
+```
+
+Useful for processing large JSON files without loading everything into memory at once.
 
 ## License
 
