@@ -126,13 +126,12 @@ describe('stringify', () => {
 
   it('serializes Date objects to timestamps when dates is timestamp', () => {
     const date = new Date('2023-01-01T10:00:00Z')
+    const expectedTimestamp = date.getTime()
     const result = stringify({ createdAt: date }, { dates: 'timestamp' })
     expect(result).toContain('"createdAt":')
     const parsed = JSON.parse(result!)
-    // TODO: Fix timestamp mode - currently serializes as ISO string
-    // expect(typeof parsed.createdAt).toBe('number')
-    expect(typeof parsed.createdAt).toBe('string')
-    expect(parsed.createdAt).toContain('2023-01-01')
+    expect(typeof parsed.createdAt).toBe('number')
+    expect(parsed.createdAt).toBe(expectedTimestamp)
   })
 
   it('serializes Date objects as ISO strings when dates disabled', () => {

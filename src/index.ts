@@ -18,35 +18,46 @@ function isDate(value: unknown): value is Date {
   return value instanceof Date
 }
 
-// Serialize date based on mode
-function serializeDate(date: Date, mode: DateSerializationMode): string | number {
-  if (mode === 'timestamp') {
-    return date.getTime()
+// Transform object to convert Date objects to numbers when mode is 'timestamp'
+// JSON.stringify calls toJSON() on Date objects before the replacer runs,
+// so we need to pre-process the object for timestamp mode
+function transformDatesForTimestamp(value: unknown, seen: WeakSet<object>): unknown {
+  if (isDate(value)) {
+    return value.getTime()
   }
-  return date.toISOString()
+  
+  if (typeof value === 'object' && value !== null) {
+    if (seen.has(value)) {
+      return '[Circular]'
+    }
+    seen.add(value)
+    
+    if (Array.isArray(value)) {
+      return value.map(item => transformDatesForTimestamp(item, seen))
+    }
+    
+    const transformed: Record<string, unknown> = {}
+    for (const key in value) {
+      transformed[key] = transformDatesForTimestamp((value as Record<string, unknown>)[key], seen)
+    }
+    return transformed
+  }
+  
+  return value
 }
 
-// Shared replacer that handles circular references, BigInt, and Dates
+// Shared replacer that handles circular references and BigInt
+// Dates are handled by pre-processing for timestamp mode
+// For ISO mode, JSON.stringify's toJSON() handles it automatically
 function createCircularReplacer(
-  customReplacer?: (key: string, value: unknown) => unknown,
-  dateMode?: boolean | DateSerializationMode
+  customReplacer?: (key: string, value: unknown) => unknown
 ) {
   const seen = new WeakSet()
-  const datesEnabled = dateMode !== undefined && dateMode !== false
-  const mode: DateSerializationMode = dateMode === true ? 'iso' : (dateMode || 'iso')
   
   return (key: string, value: unknown) => {
     if (customReplacer) {
       value = customReplacer(key, value)
     }
-    
-    // If custom replacer returned a non-Date, use that
-    // Otherwise, if dates enabled and value is Date, serialize it
-    if (datesEnabled && isDate(value)) {
-      return serializeDate(value, mode)
-    }
-    
-    // If dates disabled and value is Date, let JSON.stringify handle it (returns ISO string)
     
     if (typeof value === 'bigint') {
       return value.toString() + 'n'
@@ -108,9 +119,20 @@ export function parse<T = unknown>(value: string, options?: ParseOptions<T>): T 
 
 export function stringify(value: unknown, options?: StringifyOptions): string | null {
   try {
+    const datesEnabled = options?.dates !== undefined && options?.dates !== false
+    const mode: DateSerializationMode = options?.dates === true ? 'iso' : (options?.dates || 'iso')
+    
+    // For timestamp mode, pre-process to convert Date objects to numbers
+    // JSON.stringify calls toJSON() on Date objects before the replacer runs
+    let valueToStringify = value
+    if (datesEnabled && mode === 'timestamp') {
+      const seen = new WeakSet()
+      valueToStringify = transformDatesForTimestamp(value, seen)
+    }
+    
     return JSON.stringify(
-      value, 
-      createCircularReplacer(options?.replacer, options?.dates), 
+      valueToStringify, 
+      createCircularReplacer(options?.replacer), 
       options?.space
     )
   } catch {
@@ -138,7 +160,18 @@ export function tryStringify(value: unknown, options?: StringifyOptions | number
     const space = typeof options === 'number' ? options : options?.space
     const replacer = typeof options === 'number' ? undefined : options?.replacer
     const dates = typeof options === 'number' ? undefined : options?.dates
-    const result = JSON.stringify(value, createCircularReplacer(replacer, dates), space)
+    
+    const datesEnabled = dates !== undefined && dates !== false
+    const mode: DateSerializationMode = dates === true ? 'iso' : (dates || 'iso')
+    
+    // For timestamp mode, pre-process to convert Date objects to numbers
+    let valueToStringify = value
+    if (datesEnabled && mode === 'timestamp') {
+      const seen = new WeakSet()
+      valueToStringify = transformDatesForTimestamp(value, seen)
+    }
+    
+    const result = JSON.stringify(valueToStringify, createCircularReplacer(replacer), space)
     return [result, null]
   } catch (error) {
     return [null, error as Error]

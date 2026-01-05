@@ -176,6 +176,10 @@ const date = new Date('2023-01-01T10:00:00Z')
 stringify({ createdAt: date }, { dates: true })
 // → '{"createdAt":"2023-01-01T10:00:00.000Z"}'
 
+// Serialize Date objects to timestamps
+stringify({ createdAt: date }, { dates: 'timestamp' })
+// → '{"createdAt":1672567200000}'
+
 // Deserialize ISO date strings to Date objects
 parse('{"createdAt":"2023-01-01T10:00:00Z"}', { dates: true })
 // → { createdAt: Date }
@@ -193,9 +197,10 @@ parse('{"createdAt":"2023-01-01T10:00:00Z"}', {
 ```
 
 The `dates` option:
-- `dates: true` - Serialize Date objects to ISO strings, deserialize ISO strings to Date objects
+- `dates: true` or `dates: 'iso'` - Serialize Date objects to ISO strings, deserialize ISO strings to Date objects
+- `dates: 'timestamp'` - Serialize Date objects to timestamps (numbers), deserialize ISO strings to Date objects
 - `dates: false` - Use native JSON.stringify behavior (default)
-- Works with ISO 8601 format strings
+- Works with ISO 8601 format strings for deserialization
 
 ## Schema Validation
 
