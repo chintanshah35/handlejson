@@ -159,6 +159,7 @@ const saved = parse(localStorage.getItem('data'), { default: null })
 | `stringify(value, options?)` | Safe stringify, handles circular refs. Options: `space`, `replacer`, `dates` |
 | `tryParse(str, reviver?, dates?)` | Returns `[result, error]` tuple |
 | `tryStringify(value, options?)` | Returns `[result, error]` tuple. Options: `space`, `replacer`, `dates` |
+| `tryValidate(value, schema)` | Validate with detailed errors. Returns `[valid, error]` tuple |
 | `isValid(str)` | Check if string is valid JSON |
 | `format(value, space?)` | Pretty-print with indentation |
 | `minify(value)` | Remove all whitespace |
@@ -228,6 +229,73 @@ const nestedSchema = {
 }
 const data = parse('{"name":"John","address":{"street":"Main St","zip":12345}}', { schema: nestedSchema })
 // → { name: 'John', address: { street: 'Main St', zip: 12345 } }
+```
+
+### Optional Fields
+
+Prefix type with `?` to make fields optional:
+
+```typescript
+const schema = {
+  name: 'string',
+  age: '?number',      // optional
+  email: '?string'     // optional
+}
+
+parse('{"name":"John"}', { schema })
+// → { name: 'John' }
+
+parse('{"name":"John","age":30}', { schema })
+// → { name: 'John', age: 30 }
+```
+
+### Array Validation
+
+Validate array items by wrapping type in array:
+
+```typescript
+// Array of strings
+const schema = { tags: ['string'] }
+parse('{"tags":["a","b","c"]}', { schema })
+// → { tags: ['a', 'b', 'c'] }
+
+// Array of numbers
+const schema = { scores: ['number'] }
+parse('{"scores":[1,2,3]}', { schema })
+// → { scores: [1, 2, 3] }
+
+// Array of objects
+const schema = {
+  users: [{
+    name: 'string',
+    age: 'number'
+  }]
+}
+parse('{"users":[{"name":"John","age":30}]}', { schema })
+// → { users: [{ name: 'John', age: 30 }] }
+
+// Nested arrays
+const schema = { matrix: [['number']] }
+parse('{"matrix":[[1,2],[3,4]]}', { schema })
+// → { matrix: [[1, 2], [3, 4]] }
+```
+
+### Detailed Error Messages
+
+Get detailed validation errors:
+
+```typescript
+import { tryValidate } from 'handlejson'
+
+const schema = { name: 'string', age: 'number' }
+const [valid, error] = tryValidate({ name: 'John', age: '30' }, schema)
+
+if (!valid) {
+  console.log(error.path)      // 'age'
+  console.log(error.expected)  // 'number'
+  console.log(error.actual)    // 'string'
+  console.log(error.message)   // "Expected number at 'age', got string"
+}
 ```
 
 Schema types: `'string'`, `'number'`, `'boolean'`, `'object'`, `'array'`
