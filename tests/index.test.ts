@@ -374,5 +374,81 @@ describe('schema validation', () => {
     const result = parse('{"name":"John","address":{"street":"Main St","zip":"12345"}}', { schema })
     expect(result).toBe(null)
   })
+
+  describe('optional fields', () => {
+    it('validates optional field when present', () => {
+      const schema = { name: 'string', age: '?number' }
+      const result = parse('{"name":"John","age":30}', { schema })
+      expect(result).toEqual({ name: 'John', age: 30 })
+    })
+
+    it('validates optional field when missing', () => {
+      const schema = { name: 'string', age: '?number' }
+      const result = parse('{"name":"John"}', { schema })
+      expect(result).toEqual({ name: 'John' })
+    })
+
+    it('fails validation for wrong optional field type', () => {
+      const schema = { name: 'string', age: '?number' }
+      const result = parse('{"name":"John","age":"30"}', { schema })
+      expect(result).toBe(null)
+    })
+
+    it('validates multiple optional fields', () => {
+      const schema = { name: 'string', age: '?number', email: '?string' }
+      const result = parse('{"name":"John"}', { schema })
+      expect(result).toEqual({ name: 'John' })
+    })
+  })
+
+  describe('array item validation', () => {
+    it('validates array of strings', () => {
+      const schema = { tags: ['string'] }
+      const result = parse('{"tags":["a","b","c"]}', { schema })
+      expect(result).toEqual({ tags: ['a', 'b', 'c'] })
+    })
+
+    it('validates array of numbers', () => {
+      const schema = { scores: ['number'] }
+      const result = parse('{"scores":[1,2,3]}', { schema })
+      expect(result).toEqual({ scores: [1, 2, 3] })
+    })
+
+    it('validates empty array', () => {
+      const schema = { tags: ['string'] }
+      const result = parse('{"tags":[]}', { schema })
+      expect(result).toEqual({ tags: [] })
+    })
+
+    it('fails validation for wrong array item type', () => {
+      const schema = { tags: ['string'] }
+      const result = parse('{"tags":["a",1,"c"]}', { schema })
+      expect(result).toBe(null)
+    })
+
+    it('validates array of objects', () => {
+      const schema = { users: [{ name: 'string', age: 'number' }] }
+      const result = parse('{"users":[{"name":"John","age":30},{"name":"Jane","age":25}]}', { schema })
+      expect(result).toEqual({ users: [{ name: 'John', age: 30 }, { name: 'Jane', age: 25 }] })
+    })
+
+    it('fails validation for wrong object in array', () => {
+      const schema = { users: [{ name: 'string', age: 'number' }] }
+      const result = parse('{"users":[{"name":"John","age":30},{"name":"Jane","age":"25"}]}', { schema })
+      expect(result).toBe(null)
+    })
+
+    it('validates nested arrays', () => {
+      const schema = { matrix: [['number']] }
+      const result = parse('{"matrix":[[1,2],[3,4]]}', { schema })
+      expect(result).toEqual({ matrix: [[1, 2], [3, 4]] })
+    })
+
+    it('fails validation for non-array when array expected', () => {
+      const schema = { tags: ['string'] }
+      const result = parse('{"tags":"not-array"}', { schema })
+      expect(result).toBe(null)
+    })
+  })
 })
 

@@ -18,13 +18,22 @@ export type FormatOptions = {
 }
 
 export type SchemaType = 'string' | 'number' | 'boolean' | 'object' | 'array'
+export type SchemaValue = SchemaType | Schema | SchemaType[]
+
 export type Schema = {
-  [key: string]: SchemaType | Schema
+  [key: string]: SchemaValue
+}
+
+export type ValidationError = {
+  path: string
+  expected: string
+  actual: string
+  message: string
 }
 
 export type ParseResult<T> = [T, null] | [null, Error]
 export type StringifyResult = [string, null] | [null, Error]
-export type ValidationResult = [true, null] | [false, Error]
+export type ValidationResult = [true, null] | [false, ValidationError]
 
 export type StreamParseOptions = {
   chunkSize?: number
