@@ -109,6 +109,30 @@ const [json, err] = tryStringify(obj)
 const [json2, err2] = tryStringify(obj, { space: 2 })
 ```
 
+### Detailed Error Messages
+
+Get position and context of JSON parsing errors:
+
+```typescript
+import { parseWithDetails } from 'handlejson'
+
+const result = parseWithDetails('{"name":"John", invalid}')
+if (!result.success) {
+  console.log('Error:', result.error)
+  console.log('Position:', result.position)
+  console.log('Context:', result.context)
+  // Error: Invalid JSON at position 18: unexpected token 'invalid'
+  // Position: 18
+  // Context: '{"name":"John", invalid}'
+}
+
+// Works with valid JSON too
+const valid = parseWithDetails('{"name":"John","age":30}')
+if (valid.success) {
+  console.log(valid.data) // { name: 'John', age: 30 }
+}
+```
+
 ### Validation
 
 ```typescript
