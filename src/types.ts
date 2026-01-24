@@ -5,6 +5,9 @@ export type ParseOptions<T = unknown> = {
   reviver?: (key: string, value: unknown) => unknown
   dates?: boolean | DateSerializationMode
   schema?: Schema
+  maxSize?: number
+  maxDepth?: number
+  safeKeys?: boolean
 }
 
 export type StringifyOptions = {
