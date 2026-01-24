@@ -2,6 +2,12 @@ import type { ParseOptions, ParseResult, ParseResultWithDetails, DateSerializati
 import { validate } from './validate'
 import { extractPosition, getContext, formatError } from './errors'
 
+function validateInputSize(json: string, maxSize?: number): void {
+  if (maxSize !== undefined && json.length > maxSize) {
+    throw new Error(`Input size ${json.length} exceeds maximum ${maxSize} bytes`)
+  }
+}
+
 function createDateReviver(
   customReviver?: (key: string, value: unknown) => unknown,
   dateMode?: boolean | DateSerializationMode
