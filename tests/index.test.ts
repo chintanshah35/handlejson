@@ -590,5 +590,38 @@ describe('security features', () => {
       expect(result).toEqual({ data: 'test' })
     })
   })
+
+  describe('depth limits', () => {
+    it('rejects deeply nested objects exceeding maxDepth', () => {
+      let deepJson = '{"a":'
+      for (let i = 0; i < 10; i++) {
+        deepJson += '{"a":'
+      }
+      deepJson += '1'
+      for (let i = 0; i < 10; i++) {
+        deepJson += '}'
+      }
+      const result = parse(deepJson, { maxDepth: 5 })
+      expect(result).toBe(null)
+    })
+
+    it('allows objects within maxDepth', () => {
+      const nested = '{"a":{"b":{"c":1}}}'
+      const result = parse(nested, { maxDepth: 10 })
+      expect(result).toEqual({ a: { b: { c: 1 } } })
+    })
+
+    it('works without maxDepth limit', () => {
+      const nested = '{"a":{"b":{"c":1}}}'
+      const result = parse(nested)
+      expect(result).toEqual({ a: { b: { c: 1 } } })
+    })
+
+    it('handles arrays in depth calculation', () => {
+      const deepArray = '{"items":[[[[[1]]]]]}'
+      const result = parse(deepArray, { maxDepth: 10 })
+      expect(result).toEqual({ items: [[[[[1]]]]] })
+    })
+  })
 })
 
