@@ -26,6 +26,26 @@ function checkDepth(obj: unknown, currentDepth: number, maxDepth: number): void 
   }
 }
 
+function sanitizeKeys(obj: unknown, safeKeys: boolean): unknown {
+  if (!safeKeys || typeof obj !== 'object' || obj === null) {
+    return obj
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeKeys(item, safeKeys))
+  }
+  
+  const sanitized: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      continue
+    }
+    sanitized[key] = sanitizeKeys(value, safeKeys)
+  }
+  
+  return sanitized
+}
+
 function createDateReviver(
   customReviver?: (key: string, value: unknown) => unknown,
   dateMode?: boolean | DateSerializationMode
