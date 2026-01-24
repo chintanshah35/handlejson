@@ -570,3 +570,25 @@ describe('parseWithDetails', () => {
   })
 })
 
+describe('security features', () => {
+  describe('input size limits', () => {
+    it('rejects input exceeding maxSize', () => {
+      const largeJson = '{"data":"' + 'x'.repeat(100) + '"}'
+      const result = parse(largeJson, { maxSize: 50 })
+      expect(result).toBe(null)
+    })
+
+    it('allows input within maxSize', () => {
+      const smallJson = '{"data":"test"}'
+      const result = parse(smallJson, { maxSize: 1000 })
+      expect(result).toEqual({ data: 'test' })
+    })
+
+    it('works without maxSize limit', () => {
+      const json = '{"data":"test"}'
+      const result = parse(json)
+      expect(result).toEqual({ data: 'test' })
+    })
+  })
+})
+
