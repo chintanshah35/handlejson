@@ -532,5 +532,41 @@ describe('parseWithDetails', () => {
       expect(result.error).toBeTruthy()
     }
   })
+
+  it('shows context with special characters', () => {
+    const result = parseWithDetails('{"name":"John", "email":"test@example.com", invalid}')
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.context).toBeDefined()
+      expect(result.context).toContain('invalid')
+    }
+  })
+
+  it('shows context at JSON start boundary', () => {
+    const result = parseWithDetails('invalid{"name":"John"}')
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.context).toBeDefined()
+      expect(result.position).toBeDefined()
+    }
+  })
+
+  it('shows context at JSON end boundary', () => {
+    const result = parseWithDetails('{"name":"John"}invalid')
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.context).toBeDefined()
+    }
+  })
+
+  it('handles context with newlines', () => {
+    const json = '{\n  "name": "John",\n  invalid\n}'
+    const result = parseWithDetails(json)
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.context).toBeDefined()
+      expect(result.position).toBeDefined()
+    }
+  })
 })
 
