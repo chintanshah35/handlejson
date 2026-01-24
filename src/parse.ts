@@ -8,6 +8,24 @@ function validateInputSize(json: string, maxSize?: number): void {
   }
 }
 
+function checkDepth(obj: unknown, currentDepth: number, maxDepth: number): void {
+  if (currentDepth > maxDepth) {
+    throw new Error(`Maximum depth ${maxDepth} exceeded`)
+  }
+  
+  if (typeof obj === 'object' && obj !== null) {
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        checkDepth(item, currentDepth + 1, maxDepth)
+      }
+    } else {
+      for (const value of Object.values(obj)) {
+        checkDepth(value, currentDepth + 1, maxDepth)
+      }
+    }
+  }
+}
+
 function createDateReviver(
   customReviver?: (key: string, value: unknown) => unknown,
   dateMode?: boolean | DateSerializationMode
