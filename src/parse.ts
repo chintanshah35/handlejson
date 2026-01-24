@@ -70,19 +70,31 @@ function createDateReviver(
 
 export function parse<T = unknown>(value: string, options?: ParseOptions<T>): T | null {
   try {
+    if (options?.maxSize !== undefined) {
+      validateInputSize(value, options.maxSize)
+    }
+    
     const reviver = options?.dates || options?.reviver
       ? createDateReviver(options?.reviver, options?.dates)
       : options?.reviver
     const parsed = JSON.parse(value, reviver) as T
     
+    if (options?.maxDepth !== undefined) {
+      checkDepth(parsed, 0, options.maxDepth)
+    }
+    
+    const sanitized = options?.safeKeys
+      ? sanitizeKeys(parsed, true) as T
+      : parsed
+    
     if (options?.schema) {
-      const [valid, error] = validate(parsed, options.schema)
+      const [valid, error] = validate(sanitized, options.schema)
       if (!valid) {
         throw new Error(error.message)
       }
     }
     
-    return parsed
+    return sanitized
   } catch {
     return options?.default ?? null
   }
