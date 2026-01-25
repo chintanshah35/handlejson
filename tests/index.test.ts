@@ -623,5 +623,57 @@ describe('security features', () => {
       expect(result).toEqual({ items: [[[[[1]]]]] })
     })
   })
+
+  describe('prototype pollution protection', () => {
+    it('blocks __proto__ keys when safeKeys is enabled', () => {
+      const malicious = '{"__proto__":{"isAdmin":true},"name":"John"}'
+      const result = parse(malicious, { safeKeys: true })
+      expect(result).not.toBe(null)
+      if (result) {
+        expect(result).not.toHaveProperty('__proto__')
+        expect((result as { name: string }).name).toBe('John')
+      }
+    })
+
+    it('blocks constructor keys when safeKeys is enabled', () => {
+      const malicious = '{"constructor":{"prototype":{"isAdmin":true}},"name":"John"}'
+      const result = parse(malicious, { safeKeys: true })
+      expect(result).not.toBe(null)
+      if (result) {
+        expect(result).not.toHaveProperty('constructor')
+        expect((result as { name: string }).name).toBe('John')
+      }
+    })
+
+    it('blocks prototype keys when safeKeys is enabled', () => {
+      const malicious = '{"prototype":{"isAdmin":true},"name":"John"}'
+      const result = parse(malicious, { safeKeys: true })
+      expect(result).not.toBe(null)
+      if (result) {
+        expect(result).not.toHaveProperty('prototype')
+        expect((result as { name: string }).name).toBe('John')
+      }
+    })
+
+    it('allows dangerous keys when safeKeys is disabled', () => {
+      const json = '{"__proto__":{"test":true},"name":"John"}'
+      const result = parse(json, { safeKeys: false })
+      expect(result).not.toBe(null)
+      if (result) {
+        expect(result).toHaveProperty('__proto__')
+      }
+    })
+
+    it('handles nested dangerous keys', () => {
+      const malicious = '{"user":{"__proto__":{"isAdmin":true},"name":"John"}}'
+      const result = parse(malicious, { safeKeys: true })
+      expect(result).not.toBe(null)
+      if (result) {
+        const user = (result as { user: { name: string } }).user
+        expect(user).not.toHaveProperty('__proto__')
+        expect(user.name).toBe('John')
+      }
+    })
+  })
 })
 
