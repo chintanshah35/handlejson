@@ -32,6 +32,17 @@ export type ValidationError = {
 }
 
 export type ParseResult<T> = [T, null] | [null, Error]
+
+export type ParseResultWithDetails<T> = {
+  success: true
+  data: T
+} | {
+  success: false
+  error: string
+  position?: number
+  context?: string
+}
+
 export type StringifyResult = [string, null] | [null, Error]
 export type ValidationResult = [true, null] | [false, ValidationError]
 
