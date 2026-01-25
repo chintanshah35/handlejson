@@ -1,5 +1,6 @@
-import type { ParseOptions, ParseResult, DateSerializationMode } from './types'
+import type { ParseOptions, ParseResult, ParseResultWithDetails, DateSerializationMode } from './types'
 import { validate } from './validate'
+import { extractPosition, getContext, formatError } from './errors'
 
 function createDateReviver(
   customReviver?: (key: string, value: unknown) => unknown,
@@ -55,6 +56,47 @@ export function tryParse<T = unknown>(
     return [JSON.parse(value, finalReviver) as T, null]
   } catch (error) {
     return [null, error as Error]
+  }
+}
+
+export function parseWithDetails<T = unknown>(
+  value: string,
+  options?: ParseOptions<T>
+): ParseResultWithDetails<T> {
+  try {
+    const reviver = options?.dates || options?.reviver
+      ? createDateReviver(options?.reviver, options?.dates)
+      : options?.reviver
+    const parsed = JSON.parse(value, reviver) as T
+    
+    if (options?.schema) {
+      const [valid, error] = validate(parsed, options.schema)
+      if (!valid) {
+        return {
+          success: false,
+          error: error.message,
+          position: undefined,
+          context: undefined
+        }
+      }
+    }
+    
+    return {
+      success: true,
+      data: parsed
+    }
+  } catch (error) {
+    const err = error as Error
+    const position = extractPosition(err)
+    const context = position !== undefined ? getContext(value, position) : undefined
+    const formattedError = formatError(err, position, context)
+    
+    return {
+      success: false,
+      error: formattedError,
+      position,
+      context
+    }
   }
 }
 
