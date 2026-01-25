@@ -120,13 +120,25 @@ export function parseWithDetails<T = unknown>(
   options?: ParseOptions<T>
 ): ParseResultWithDetails<T> {
   try {
+    if (options?.maxSize !== undefined) {
+      validateInputSize(value, options.maxSize)
+    }
+    
     const reviver = options?.dates || options?.reviver
       ? createDateReviver(options?.reviver, options?.dates)
       : options?.reviver
     const parsed = JSON.parse(value, reviver) as T
     
+    if (options?.maxDepth !== undefined) {
+      checkDepth(parsed, 0, options.maxDepth)
+    }
+    
+    const sanitized = options?.safeKeys
+      ? sanitizeKeys(parsed, true) as T
+      : parsed
+    
     if (options?.schema) {
-      const [valid, error] = validate(parsed, options.schema)
+      const [valid, error] = validate(sanitized, options.schema)
       if (!valid) {
         return {
           success: false,
@@ -139,7 +151,7 @@ export function parseWithDetails<T = unknown>(
     
     return {
       success: true,
-      data: parsed
+      data: sanitized
     }
   } catch (error) {
     const err = error as Error
