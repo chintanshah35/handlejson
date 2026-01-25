@@ -133,6 +133,30 @@ if (valid.success) {
 }
 ```
 
+### Security Options
+
+Protect against common security vulnerabilities:
+
+```typescript
+import { parse } from 'handlejson'
+
+// Prevent memory exhaustion
+const result = parse(largeJson, { maxSize: 10 * 1024 * 1024 }) // 10MB limit
+
+// Prevent stack overflow from deeply nested objects
+const nested = parse(deepJson, { maxDepth: 100 }) // Max 100 levels deep
+
+// Protect against prototype pollution
+const safe = parse(json, { safeKeys: true }) // Blocks __proto__, constructor, prototype keys
+
+// Combine all security options
+const secure = parse(json, {
+  maxSize: 10 * 1024 * 1024,
+  maxDepth: 100,
+  safeKeys: true
+})
+```
+
 ### Validation
 
 ```typescript
