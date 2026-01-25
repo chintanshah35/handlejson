@@ -6,7 +6,8 @@ import {
   tryStringify, 
   isValid, 
   format, 
-  minify 
+  minify,
+  parseWithDetails
 } from '../src/index'
 
 describe('parse', () => {
@@ -449,6 +450,87 @@ describe('schema validation', () => {
       const result = parse('{"tags":"not-array"}', { schema })
       expect(result).toBe(null)
     })
+  })
+})
+
+describe('parseWithDetails', () => {
+  it('returns success with data for valid JSON', () => {
+    const result = parseWithDetails('{"name":"John","age":30}')
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).toEqual({ name: 'John', age: 30 })
+    }
+  })
+
+  it('returns error with position for invalid JSON', () => {
+    const result = parseWithDetails('{"name":"John", invalid}')
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error).toBeTruthy()
+      expect(result.position).toBeDefined()
+      expect(typeof result.position).toBe('number')
+    }
+  })
+
+  it('includes context around error position', () => {
+    const result = parseWithDetails('{"name":"John", invalid}')
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.context).toBeDefined()
+      expect(result.context).toContain('invalid')
+    }
+  })
+
+  it('handles missing comma errors', () => {
+    const result = parseWithDetails('{"name":"John" "age":30}')
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.position).toBeDefined()
+      expect(result.error).toContain('position')
+    }
+  })
+
+  it('handles trailing comma errors', () => {
+    const result = parseWithDetails('{"name":"John",}')
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.position).toBeDefined()
+    }
+  })
+
+  it('works with valid arrays', () => {
+    const result = parseWithDetails('[1,2,3]')
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).toEqual([1, 2, 3])
+    }
+  })
+
+  it('handles invalid array syntax', () => {
+    const result = parseWithDetails('[1,2,}')
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.position).toBeDefined()
+      expect(result.error).toBeTruthy()
+    }
+  })
+
+  it('preserves types with generics', () => {
+    type User = { name: string; age: number }
+    const result = parseWithDetails<User>('{"name":"John","age":30}')
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).toEqual({ name: 'John', age: 30 })
+    }
+  })
+
+  it('handles schema validation errors', () => {
+    const schema = { name: 'string', age: 'number' }
+    const result = parseWithDetails('{"name":"John","age":"30"}', { schema })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error).toBeTruthy()
+    }
   })
 })
 
