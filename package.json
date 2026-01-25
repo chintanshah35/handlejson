@@ -27,6 +27,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
+    "benchmark": "tsx benchmarks/compare.ts",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
