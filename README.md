@@ -52,7 +52,9 @@ const data = parse(str) // null if invalid
 - Pretty-print and minify
 - TypeScript-first
 - Zero dependencies
-- ~1KB gzipped
+- ~1.5KB gzipped
+- Better error messages with position and context
+- Security options (size limits, depth limits, prototype pollution protection)
 
 ## Usage
 
