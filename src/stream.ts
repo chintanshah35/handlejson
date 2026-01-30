@@ -1,5 +1,8 @@
 import type { StreamParseOptions, StreamParseResult } from './types'
 
+/**
+ * Parse large JSON in chunks. Supports ReadableStream or string input.
+ */
 export async function parseStream<T = unknown>(
   stream: ReadableStream<Uint8Array> | string,
   options?: StreamParseOptions

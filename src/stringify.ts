@@ -52,6 +52,9 @@ function createCircularReplacer(
   }
 }
 
+/**
+ * Safe JSON stringify. Handles circular refs and returns null on error.
+ */
 export function stringify(value: unknown, options?: StringifyOptions): string | null {
   try {
     const datesEnabled = options?.dates !== undefined && options?.dates !== false
@@ -73,6 +76,9 @@ export function stringify(value: unknown, options?: StringifyOptions): string | 
   }
 }
 
+/**
+ * Stringify with error tuple. Returns [result, error] instead of null.
+ */
 export function tryStringify(value: unknown, options?: StringifyOptions | number): StringifyResult {
   try {
     const space = typeof options === 'number' ? options : options?.space
