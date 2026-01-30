@@ -158,6 +158,168 @@ describe('stringify', () => {
     // Custom replacer can modify the serialized string
     expect(result).toBe('{"createdAt":"custom"}')
   })
+
+  it('handles multiple circular references', () => {
+    const a: Record<string, unknown> = { name: 'a' }
+    const b: Record<string, unknown> = { name: 'b' }
+    const c: Record<string, unknown> = { name: 'c' }
+    a.ref = b
+    b.ref = c
+    c.ref = a
+    const result = stringify(a)
+    expect(result).toContain('[Circular]')
+    expect(result).toContain('"name":"a"')
+  })
+
+  it('handles circular reference in array', () => {
+    const obj: Record<string, unknown> = { items: [] }
+    obj.items = [obj]
+    const result = stringify(obj)
+    expect(result).toContain('[Circular]')
+  })
+
+  it('handles nested circular references', () => {
+    const parent: Record<string, unknown> = { id: 1 }
+    const child: Record<string, unknown> = { id: 2 }
+    parent.child = child
+    child.parent = parent
+    child.self = child
+    const result = stringify(parent)
+    expect(result).toContain('[Circular]')
+  })
+
+  it('handles undefined in arrays', () => {
+    const result = stringify([1, undefined, 3])
+    expect(result).toBe('[1,null,3]')
+  })
+
+  it('handles null values', () => {
+    expect(stringify({ a: null })).toBe('{"a":null}')
+  })
+
+  it('handles Symbol values', () => {
+    const sym = Symbol('test')
+    const result = stringify({ sym })
+    expect(result).toBe('{}')
+  })
+
+  it('handles Map and Set (serializes to empty objects)', () => {
+    const map = new Map([['a', 1]])
+    const set = new Set([1, 2, 3])
+    const result = stringify({ map, set })
+    expect(result).toBe('{"map":{},"set":{}}')
+  })
+
+  it('handles functions (omitted)', () => {
+    const fn = () => {}
+    const result = stringify({ fn, data: 1 })
+    expect(result).toBe('{"data":1}')
+  })
+
+  it('handles dates: iso mode explicitly', () => {
+    const date = new Date('2023-01-01T10:00:00Z')
+    const result = stringify({ date }, { dates: 'iso' })
+    expect(result).toContain('"date":"2023-01-01T10:00:00.000Z"')
+  })
+
+  it('handles dates: timestamp mode', () => {
+    const date = new Date('2023-01-01T10:00:00Z')
+    const timestamp = date.getTime()
+    const result = stringify({ date }, { dates: 'timestamp' })
+    const parsed = JSON.parse(result!)
+    expect(parsed.date).toBe(timestamp)
+  })
+
+  it('handles dates: false mode', () => {
+    const date = new Date('2023-01-01T10:00:00Z')
+    const result = stringify({ date }, { dates: false })
+    expect(result).toContain('"date":"2023-01-01T10:00:00.000Z"')
+  })
+
+  it('handles dates in nested objects', () => {
+    const date = new Date('2023-01-01T10:00:00Z')
+    const result = stringify({ user: { createdAt: date } }, { dates: true })
+    expect(result).toContain('"createdAt":"2023-01-01T10:00:00.000Z"')
+  })
+
+  it('handles dates in arrays', () => {
+    const dates = [new Date('2023-01-01T10:00:00Z'), new Date('2023-01-02T10:00:00Z')]
+    const result = stringify({ dates }, { dates: 'timestamp' })
+    const parsed = JSON.parse(result!)
+    expect(parsed.dates[0]).toBe(dates[0].getTime())
+    expect(parsed.dates[1]).toBe(dates[1].getTime())
+  })
+
+  it('handles empty object', () => {
+    expect(stringify({})).toBe('{}')
+  })
+
+  it('handles empty array', () => {
+    expect(stringify([])).toBe('[]')
+  })
+
+  it('handles unicode characters', () => {
+    expect(stringify({ emoji: '😀' })).toBe('{"emoji":"😀"}')
+    expect(stringify({ text: 'café' })).toBe('{"text":"café"}')
+  })
+
+  it('handles special characters', () => {
+    expect(stringify({ text: 'line1\nline2' })).toBe('{"text":"line1\\nline2"}')
+    expect(stringify({ text: 'tab\tseparated' })).toBe('{"text":"tab\\tseparated"}')
+  })
+
+  it('handles very large numbers', () => {
+    expect(stringify({ big: 9007199254740991 })).toBe('{"big":9007199254740991}')
+  })
+
+  it('handles negative numbers', () => {
+    expect(stringify({ value: -42 })).toBe('{"value":-42}')
+  })
+
+  it('handles decimal numbers', () => {
+    expect(stringify({ pi: 3.14159 })).toBe('{"pi":3.14159}')
+  })
+
+  it('handles deeply nested structures', () => {
+    const deep = { a: { b: { c: { d: { e: 1 } } } } }
+    const result = stringify(deep)
+    expect(result).toContain('"e":1')
+  })
+
+  it('handles arrays with mixed types', () => {
+    expect(stringify([1, 'two', true, null, {}])).toBe('[1,"two",true,null,{}]')
+  })
+
+  it('handles spacing with nested structures', () => {
+    const nested = { a: { b: { c: 1 } } }
+    const result = stringify(nested, { space: 2 })
+    expect(result).toContain('\n')
+    expect(result).toContain('"c": 1')
+  })
+
+  it('handles replacer removing keys', () => {
+    const result = stringify(
+      { a: 1, b: 2, c: 3 },
+      { replacer: (key, value) => key === 'b' ? undefined : value }
+    )
+    expect(result).toBe('{"a":1,"c":3}')
+  })
+
+  it('handles replacer transforming values', () => {
+    const result = stringify(
+      { password: 'secret', name: 'John' },
+      { replacer: (key, val) => key === 'password' ? '[REDACTED]' : val }
+    )
+    expect(result).toBe('{"password":"[REDACTED]","name":"John"}')
+  })
+
+  it('returns null for non-serializable circular structure', () => {
+    const obj: Record<string, unknown> = {}
+    obj.self = obj
+    const result = stringify(obj)
+    expect(result).not.toBe(null)
+    expect(result).toContain('[Circular]')
+  })
 })
 
 describe('tryParse', () => {
@@ -191,6 +353,47 @@ describe('tryParse', () => {
     expect(result).toBe(null)
     expect(error?.message).toBeTruthy()
     expect(error?.message.length).toBeGreaterThan(0)
+  })
+
+  it('handles empty string', () => {
+    const [result, error] = tryParse('')
+    expect(result).toBe(null)
+    expect(error).toBeInstanceOf(Error)
+  })
+
+  it('handles dates: iso mode', () => {
+    const [result] = tryParse('{"date":"2023-01-01T10:00:00Z"}', undefined, 'iso')
+    expect((result as { date: Date }).date).toBeInstanceOf(Date)
+  })
+
+  it('handles dates: timestamp mode', () => {
+    const [result] = tryParse('{"date":"2023-01-01T10:00:00Z"}', undefined, 'timestamp')
+    expect((result as { date: Date }).date).toBeInstanceOf(Date)
+  })
+
+  it('handles dates: false mode', () => {
+    const [result] = tryParse('{"date":"2023-01-01T10:00:00Z"}', undefined, false)
+    expect((result as { date: string }).date).toBe('2023-01-01T10:00:00Z')
+  })
+
+  it('handles reviver with dates', () => {
+    const [result] = tryParse(
+      '{"date":"2023-01-01T10:00:00Z","name":"John"}',
+      (key, value) => key === 'name' ? value.toUpperCase() : value,
+      true
+    )
+    expect((result as { date: Date }).date).toBeInstanceOf(Date)
+    expect((result as { name: string }).name).toBe('JOHN')
+  })
+
+  it('handles unicode characters', () => {
+    const [result] = tryParse('{"emoji":"😀"}')
+    expect((result as { emoji: string }).emoji).toBe('😀')
+  })
+
+  it('handles special characters', () => {
+    const [result] = tryParse('{"text":"line1\\nline2"}')
+    expect((result as { text: string }).text).toBe('line1\nline2')
   })
 })
 
@@ -249,6 +452,74 @@ describe('tryStringify', () => {
     const [result] = tryStringify(a)
     expect(result).toContain('[Circular]')
   })
+
+  it('handles non-serializable values', () => {
+    const obj = { fn: () => {}, sym: Symbol('test') }
+    const [result, error] = tryStringify(obj)
+    expect(result).toBe('{}')
+    expect(error).toBe(null)
+  })
+
+  it('handles undefined values', () => {
+    const [result] = tryStringify({ a: 1, b: undefined })
+    expect(result).toBe('{"a":1}')
+  })
+
+  it('handles null values', () => {
+    const [result] = tryStringify({ a: null })
+    expect(result).toBe('{"a":null}')
+  })
+
+  it('handles dates: iso mode', () => {
+    const date = new Date('2023-01-01T10:00:00Z')
+    const [result] = tryStringify({ date }, { dates: 'iso' })
+    expect(result).toContain('"date":"2023-01-01T10:00:00.000Z"')
+  })
+
+  it('handles dates: timestamp mode', () => {
+    const date = new Date('2023-01-01T10:00:00Z')
+    const timestamp = date.getTime()
+    const [result] = tryStringify({ date }, { dates: 'timestamp' })
+    const parsed = JSON.parse(result!)
+    expect(parsed.date).toBe(timestamp)
+  })
+
+  it('handles dates: false mode', () => {
+    const date = new Date('2023-01-01T10:00:00Z')
+    const [result] = tryStringify({ date }, { dates: false })
+    expect(result).toContain('"date":"2023-01-01T10:00:00.000Z"')
+  })
+
+  it('handles empty object', () => {
+    const [result] = tryStringify({})
+    expect(result).toBe('{}')
+  })
+
+  it('handles empty array', () => {
+    const [result] = tryStringify([])
+    expect(result).toBe('[]')
+  })
+
+  it('handles unicode characters', () => {
+    const [result] = tryStringify({ emoji: '😀' })
+    expect(result).toBe('{"emoji":"😀"}')
+  })
+
+  it('handles special characters', () => {
+    const [result] = tryStringify({ text: 'line1\nline2' })
+    expect(result).toBe('{"text":"line1\\nline2"}')
+  })
+
+  it('handles deeply nested structures', () => {
+    const deep = { a: { b: { c: { d: { e: 1 } } } } }
+    const [result] = tryStringify(deep)
+    expect(result).toContain('"e":1')
+  })
+
+  it('handles arrays with mixed types', () => {
+    const [result] = tryStringify([1, 'two', true, null, {}])
+    expect(result).toBe('[1,"two",true,null,{}]')
+  })
 })
 
 describe('isValid', () => {
@@ -293,6 +564,52 @@ describe('format', () => {
   it('returns null for invalid JSON strings', () => {
     expect(format('invalid')).toBe(null)
   })
+
+  it('formats nested objects', () => {
+    const result = format({ a: { b: { c: 1 } } })
+    expect(result).toContain('"a"')
+    expect(result).toContain('"b"')
+    expect(result).toContain('"c": 1')
+  })
+
+  it('formats arrays', () => {
+    const result = format([1, 2, 3])
+    expect(result).toBe('[\n  1,\n  2,\n  3\n]')
+  })
+
+  it('formats arrays with objects', () => {
+    const result = format([{ a: 1 }, { b: 2 }])
+    expect(result).toContain('"a": 1')
+    expect(result).toContain('"b": 2')
+  })
+
+  it('formats with zero spacing', () => {
+    const result = format({ a: 1 }, 0)
+    expect(result).toBe('{"a":1}')
+  })
+
+  it('formats with single space', () => {
+    const result = format({ a: 1 }, 1)
+    expect(result).toContain('"a": 1')
+  })
+
+  it('handles empty object', () => {
+    expect(format({})).toBe('{}')
+  })
+
+  it('handles empty array', () => {
+    expect(format([])).toBe('[]')
+  })
+
+  it('handles unicode characters', () => {
+    const result = format({ emoji: '😀' })
+    expect(result).toContain('😀')
+  })
+
+  it('handles special characters', () => {
+    const result = format({ text: 'line1\nline2' })
+    expect(result).toContain('\\n')
+  })
 })
 
 describe('minify', () => {
@@ -306,6 +623,48 @@ describe('minify', () => {
 
   it('returns null for invalid JSON strings', () => {
     expect(minify('invalid')).toBe(null)
+  })
+
+  it('minifies nested objects', () => {
+    const result = minify({ a: { b: { c: 1 } } })
+    expect(result).toBe('{"a":{"b":{"c":1}}}')
+  })
+
+  it('minifies arrays', () => {
+    expect(minify([1, 2, 3])).toBe('[1,2,3]')
+  })
+
+  it('minifies arrays with objects', () => {
+    const result = minify([{ a: 1 }, { b: 2 }])
+    expect(result).toBe('[{"a":1},{"b":2}]')
+  })
+
+  it('minifies strings with whitespace', () => {
+    const json = '{\n  "name": "John",\n  "age": 30\n}'
+    expect(minify(json)).toBe('{"name":"John","age":30}')
+  })
+
+  it('minifies strings with tabs', () => {
+    const json = '{\t"a":\t1\t}'
+    expect(minify(json)).toBe('{"a":1}')
+  })
+
+  it('handles empty object', () => {
+    expect(minify({})).toBe('{}')
+  })
+
+  it('handles empty array', () => {
+    expect(minify([])).toBe('[]')
+  })
+
+  it('preserves unicode characters', () => {
+    const result = minify({ emoji: '😀' })
+    expect(result).toBe('{"emoji":"😀"}')
+  })
+
+  it('preserves special characters in strings', () => {
+    const result = minify({ text: 'line1\nline2' })
+    expect(result).toBe('{"text":"line1\\nline2"}')
   })
 })
 
@@ -681,6 +1040,222 @@ describe('security features', () => {
         const user = (result as { user: { name: string } }).user
         expect(user).not.toHaveProperty('__proto__')
         expect(user.name).toBe('John')
+      }
+    })
+
+    it('handles arrays with dangerous keys', () => {
+      const malicious = '{"items":[{"__proto__":{"test":true},"id":1}]}'
+      const result = parse(malicious, { safeKeys: true })
+      expect(result).not.toBe(null)
+      if (result) {
+        const items = (result as { items: Array<{ id: number }> }).items
+        expect(items[0]).not.toHaveProperty('__proto__')
+        expect(items[0].id).toBe(1)
+      }
+    })
+
+    it('combines all security options', () => {
+      const json = '{"a":{"b":{"c":1}}}'
+      const result = parse(json, { maxSize: 1000, maxDepth: 10, safeKeys: true })
+      expect(result).toEqual({ a: { b: { c: 1 } } })
+    })
+
+    it('security options work with schema validation', () => {
+      const schema = { name: 'string', age: 'number' }
+      const json = '{"name":"John","age":30}'
+      const result = parse(json, { schema, maxSize: 1000, maxDepth: 10, safeKeys: true })
+      expect(result).toEqual({ name: 'John', age: 30 })
+    })
+  })
+
+  describe('date handling edge cases', () => {
+    it('handles dates: iso mode explicitly', () => {
+      const result = parse('{"date":"2023-01-01T10:00:00Z"}', { dates: 'iso' })
+      expect((result as { date: Date }).date).toBeInstanceOf(Date)
+    })
+
+    it('handles dates: timestamp mode in parse', () => {
+      const result = parse('{"date":"2023-01-01T10:00:00Z"}', { dates: 'timestamp' })
+      expect((result as { date: Date }).date).toBeInstanceOf(Date)
+    })
+
+    it('handles dates with timezone offsets', () => {
+      const result = parse('{"date":"2023-01-01T10:00:00+05:30"}', { dates: true })
+      expect((result as { date: Date }).date).toBeInstanceOf(Date)
+    })
+
+    it('handles dates with milliseconds', () => {
+      const result = parse('{"date":"2023-01-01T10:00:00.999Z"}', { dates: true })
+      expect((result as { date: Date }).date).toBeInstanceOf(Date)
+    })
+
+    it('does not parse invalid date strings', () => {
+      const result = parse('{"date":"not-a-date"}', { dates: true })
+      expect((result as { date: string }).date).toBe('not-a-date')
+    })
+
+    it('handles dates in arrays', () => {
+      const result = parse('{"dates":["2023-01-01T10:00:00Z","2023-01-02T10:00:00Z"]}', { dates: true })
+      const dates = (result as { dates: Date[] }).dates
+      expect(dates[0]).toBeInstanceOf(Date)
+      expect(dates[1]).toBeInstanceOf(Date)
+    })
+
+    it('handles dates in nested objects', () => {
+      const result = parse('{"user":{"createdAt":"2023-01-01T10:00:00Z"}}', { dates: true })
+      const user = (result as { user: { createdAt: Date } }).user
+      expect(user.createdAt).toBeInstanceOf(Date)
+    })
+  })
+
+  describe('reviver edge cases', () => {
+  it('handles reviver removing keys by returning undefined', () => {
+    const result = parse('{"a":1,"b":2}', {
+      reviver: (key, value) => key === 'b' ? undefined : value
+    })
+    expect(result).toEqual({ a: 1 })
+  })
+
+    it('handles reviver modifying values', () => {
+      const result = parse('{"a":1,"b":2}', {
+        reviver: (key, value) => typeof value === 'number' ? value * 2 : value
+      })
+      expect(result).toEqual({ a: 2, b: 4 })
+    })
+
+    it('handles reviver with dates option', () => {
+      const result = parse('{"date":"2023-01-01T10:00:00Z","name":"John"}', {
+        dates: true,
+        reviver: (key, value) => key === 'date' && value instanceof Date ? new Date(value.getTime() + 1000) : value
+      })
+      const date = (result as { date: Date }).date
+      expect(date).toBeInstanceOf(Date)
+      expect((result as { name: string }).name).toBe('John')
+    })
+  })
+
+  describe('edge cases and special values', () => {
+    it('handles empty object', () => {
+      expect(parse('{}')).toEqual({})
+    })
+
+    it('handles empty array', () => {
+      expect(parse('[]')).toEqual([])
+    })
+
+    it('handles null values', () => {
+      expect(parse('{"a":null}')).toEqual({ a: null })
+    })
+
+    it('handles false values', () => {
+      expect(parse('{"active":false}')).toEqual({ active: false })
+    })
+
+    it('handles zero values', () => {
+      expect(parse('{"count":0}')).toEqual({ count: 0 })
+    })
+
+    it('handles empty strings', () => {
+      expect(parse('{"name":""}')).toEqual({ name: '' })
+    })
+
+    it('handles unicode characters', () => {
+      expect(parse('{"emoji":"😀"}')).toEqual({ emoji: '😀' })
+      expect(parse('{"text":"café"}')).toEqual({ text: 'café' })
+      expect(parse('{"text":"日本語"}')).toEqual({ text: '日本語' })
+    })
+
+    it('handles special characters in strings', () => {
+      expect(parse('{"text":"\\"quoted\\""}')).toEqual({ text: '"quoted"' })
+      expect(parse('{"text":"line1\\nline2"}')).toEqual({ text: 'line1\nline2' })
+      expect(parse('{"text":"tab\\tseparated"}')).toEqual({ text: 'tab\tseparated' })
+    })
+
+    it('handles very large numbers', () => {
+      expect(parse('{"big":9007199254740991}')).toEqual({ big: 9007199254740991 })
+    })
+
+    it('handles scientific notation', () => {
+      expect(parse('{"value":1e10}')).toEqual({ value: 10000000000 })
+    })
+
+    it('handles negative numbers', () => {
+      expect(parse('{"value":-42}')).toEqual({ value: -42 })
+    })
+
+    it('handles decimal numbers', () => {
+      expect(parse('{"pi":3.14159}')).toEqual({ pi: 3.14159 })
+    })
+
+    it('handles nested empty structures', () => {
+      expect(parse('{"a":{},"b":[]}')).toEqual({ a: {}, b: [] })
+    })
+
+    it('handles deeply nested structures', () => {
+      const deep = '{"a":{"b":{"c":{"d":{"e":1}}}}}'
+      expect(parse(deep)).toEqual({ a: { b: { c: { d: { e: 1 } } } } })
+    })
+
+    it('handles arrays with mixed types', () => {
+      expect(parse('[1,"two",true,null,{}]')).toEqual([1, 'two', true, null, {}])
+    })
+
+    it('handles objects with many keys', () => {
+      const keys = Array.from({ length: 100 }, (_, i) => `"key${i}":${i}`).join(',')
+      const json = `{${keys}}`
+      const result = parse(json)
+      expect(result).not.toBe(null)
+      if (result) {
+        expect(Object.keys(result as Record<string, number>).length).toBe(100)
+      }
+    })
+  })
+
+  describe('parseWithDetails comprehensive', () => {
+    it('handles all options together', () => {
+      const schema = { name: 'string', age: 'number' }
+      const result = parseWithDetails('{"name":"John","age":30}', {
+        schema,
+        maxSize: 1000,
+        maxDepth: 10,
+        safeKeys: true,
+        dates: true
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).toEqual({ name: 'John', age: 30 })
+      }
+    })
+
+    it('reports security option violations', () => {
+      const largeJson = '{"data":"' + 'x'.repeat(200) + '"}'
+      const result = parseWithDetails(largeJson, { maxSize: 50 })
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error).toBeTruthy()
+      }
+    })
+
+    it('reports depth violations', () => {
+      let deepJson = '{"a":'
+      for (let i = 0; i < 20; i++) {
+        deepJson += '{"a":'
+      }
+      deepJson += '1'
+      for (let i = 0; i < 20; i++) {
+        deepJson += '}'
+      }
+      const result = parseWithDetails(deepJson, { maxDepth: 10 })
+      expect(result.success).toBe(false)
+    })
+
+    it('handles schema validation errors with details', () => {
+      const schema = { name: 'string', age: 'number' }
+      const result = parseWithDetails('{"name":"John","age":"30"}', { schema })
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error).toBeTruthy()
+        expect(result.error).toContain('age')
       }
     })
   })
