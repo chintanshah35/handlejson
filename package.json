@@ -1,6 +1,6 @@
 {
   "name": "handlejson",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "JSON, handled. Safe parse, stringify, format, validate.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -24,8 +24,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "vitest",
-    "test:run": "vitest run",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "benchmark": "tsx benchmarks/compare.ts",
     "prepublishOnly": "npm run build"
