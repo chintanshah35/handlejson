@@ -1,7 +1,7 @@
 import type { Schema, ValidationResult } from './types'
 import { validate } from './validate'
 
-export { parse, tryParse, isValid } from './parse'
+export { parse, tryParse, parseWithDetails, isValid } from './parse'
 export { stringify, tryStringify } from './stringify'
 export { format, minify } from './format'
 export { parseStream } from './stream'
@@ -15,6 +15,7 @@ export type {
   StringifyOptions, 
   FormatOptions,
   ParseResult,
+  ParseResultWithDetails,
   StringifyResult,
   Schema,
   SchemaType,

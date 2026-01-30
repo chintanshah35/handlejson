@@ -4,6 +4,7 @@
 
 [![npm version](https://img.shields.io/npm/v/handlejson.svg)](https://www.npmjs.com/package/handlejson)
 [![npm downloads](https://img.shields.io/npm/dm/handlejson.svg)](https://www.npmjs.com/package/handlejson)
+[![build](https://github.com/chintanshah35/handlejson/actions/workflows/test.yml/badge.svg)](https://github.com/chintanshah35/handlejson/actions)
 [![node](https://img.shields.io/node/v/handlejson.svg)](https://nodejs.org)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/handlejson)](https://bundlephobia.com/package/handlejson)
 [![license](https://img.shields.io/npm/l/handlejson.svg)](https://github.com/chintanshah35/handlejson/blob/main/LICENSE)
@@ -13,6 +14,8 @@
 ```bash
 npm install handlejson
 ```
+
+**v1.0.0** - 244 tests, performance improvements, ready for production.
 
 ## Quick Start
 
@@ -25,7 +28,7 @@ const json = stringify({ name: 'John' })  // '{"name":"John"}'
 
 ## Why?
 
-`JSON.parse` and `JSON.stringify` throw errors. You always need try-catch. This gets old.
+`JSON.parse` and `JSON.stringify` throw errors. You always need try-catch. This is repetitive.
 
 **Before:**
 ```typescript
@@ -52,7 +55,26 @@ const data = parse(str) // null if invalid
 - Pretty-print and minify
 - TypeScript-first
 - Zero dependencies
-- ~1KB gzipped
+- ~1.5KB gzipped
+- Better error messages with position and context
+- Security options (size limits, depth limits, prototype pollution protection)
+
+## Performance
+
+Performance benchmarks:
+
+- **Small JSON (<1KB)**: 5.2M ops/s
+- **With security options**: 3.4M ops/s
+- **Medium JSON (100 items)**: 21k ops/s
+- **Concurrency**: 22.8k ops/s (1000 concurrent requests)
+
+See [benchmarks/enterprise-load.ts](./benchmarks/enterprise-load.ts) for detailed performance tests.
+
+**What makes it different:**
+- Built-in security options (maxSize, maxDepth, safeKeys)
+- Detailed error messages with position and context
+- Stream parsing for large files
+- Zero dependencies, 1.5KB gzipped
 
 ## Usage
 
@@ -107,6 +129,54 @@ if (error) {
 
 const [json, err] = tryStringify(obj)
 const [json2, err2] = tryStringify(obj, { space: 2 })
+```
+
+### Detailed Error Messages
+
+Get position and context of JSON parsing errors:
+
+```typescript
+import { parseWithDetails } from 'handlejson'
+
+const result = parseWithDetails('{"name":"John", invalid}')
+if (!result.success) {
+  console.log('Error:', result.error)
+  console.log('Position:', result.position)
+  console.log('Context:', result.context)
+  // Error: Invalid JSON at position 18: unexpected token 'invalid'
+  // Position: 18
+  // Context: '{"name":"John", invalid}'
+}
+
+// Works with valid JSON too
+const valid = parseWithDetails('{"name":"John","age":30}')
+if (valid.success) {
+  console.log(valid.data) // { name: 'John', age: 30 }
+}
+```
+
+### Security Options
+
+Protect against common security vulnerabilities:
+
+```typescript
+import { parse } from 'handlejson'
+
+// Prevent memory exhaustion
+const result = parse(largeJson, { maxSize: 10 * 1024 * 1024 }) // 10MB limit
+
+// Prevent stack overflow from deeply nested objects
+const nested = parse(deepJson, { maxDepth: 100 }) // Max 100 levels deep
+
+// Protect against prototype pollution
+const safe = parse(json, { safeKeys: true }) // Blocks __proto__, constructor, prototype keys
+
+// Combine all security options
+const secure = parse(json, {
+  maxSize: 10 * 1024 * 1024,
+  maxDepth: 100,
+  safeKeys: true
+})
 ```
 
 ### Validation
@@ -325,7 +395,14 @@ if (streamResult.complete) {
 }
 ```
 
-Useful for processing large JSON files without loading everything into memory at once.
+Handles large JSON files efficiently.
+
+## Articles & Blog Posts
+
+Learn more about handlejson:
+
+- **[Introducing handlejson: Safe JSON Parsing Without the Try-Catch Spam](https://dev.to/chintanshah35/introducing-handlejson-safe-json-parsing-without-the-try-catch-spam-1oh3)** - Dev.to
+- **[JSON Parsing Without the Tears: A Better Approach to Error Handling](https://medium.com/@chintanshah35/json-parsing-without-the-tears-a-better-approach-to-error-handling-2e569d28acb4)** - Medium
 
 ## License
 
