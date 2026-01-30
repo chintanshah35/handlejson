@@ -32,19 +32,30 @@ function sanitizeKeys(obj: unknown, safeKeys: boolean): unknown {
   }
   
   if (Array.isArray(obj)) {
-    return obj.map(item => sanitizeKeys(item, safeKeys))
+    const sanitized = obj.map(item => sanitizeKeys(item, safeKeys))
+    return sanitized.some((item, i) => item !== obj[i]) ? sanitized : obj
   }
   
+  const objRecord = obj as Record<string, unknown>
   const sanitized: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(obj)) {
+  let hasDangerousKeys = false
+  
+  for (const key in objRecord) {
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      hasDangerousKeys = true
       continue
     }
-    sanitized[key] = sanitizeKeys(value, safeKeys)
+    const sanitizedValue = sanitizeKeys(objRecord[key], safeKeys)
+    if (sanitizedValue !== objRecord[key]) {
+      hasDangerousKeys = true
+    }
+    sanitized[key] = sanitizedValue
   }
   
-  return sanitized
+  return hasDangerousKeys ? sanitized : obj
 }
+
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})?$/
 
 function createDateReviver(
   customReviver?: (key: string, value: unknown) => unknown,
@@ -54,8 +65,8 @@ function createDateReviver(
   
   return (key: string, value: unknown) => {
     if (datesEnabled && typeof value === 'string') {
-      const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})?$/
-      if (isoDateRegex.test(value)) {
+      const len = value.length
+      if (len >= 19 && len <= 35 && ISO_DATE_REGEX.test(value)) {
         const date = new Date(value)
         if (!isNaN(date.getTime())) {
           const result = customReviver ? customReviver(key, date) : date
@@ -68,6 +79,9 @@ function createDateReviver(
   }
 }
 
+/**
+ * Safe JSON parse. Returns null on error instead of throwing.
+ */
 export function parse<T = unknown>(value: string, options?: ParseOptions<T>): T | null {
   try {
     if (options?.maxSize !== undefined) {
@@ -100,6 +114,9 @@ export function parse<T = unknown>(value: string, options?: ParseOptions<T>): T 
   }
 }
 
+/**
+ * Parse with error tuple. Returns [result, error] instead of null.
+ */
 export function tryParse<T = unknown>(
   value: string, 
   reviver?: (key: string, value: unknown) => unknown,
@@ -115,6 +132,9 @@ export function tryParse<T = unknown>(
   }
 }
 
+/**
+ * Parse with error details. Includes position and context for debugging.
+ */
 export function parseWithDetails<T = unknown>(
   value: string,
   options?: ParseOptions<T>
@@ -168,6 +188,9 @@ export function parseWithDetails<T = unknown>(
   }
 }
 
+/**
+ * Check if string is valid JSON without parsing.
+ */
 export function isValid(value: string): boolean {
   try {
     JSON.parse(value)
