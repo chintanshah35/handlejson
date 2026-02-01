@@ -56,7 +56,7 @@ function validateValue(value: unknown, schemaValue: SchemaValue, path: string): 
         const result = validate(item, itemSchema)
         if (!result[0]) {
           const error = result[1]
-          return [false, { ...error, path: `${itemPath}.${error.path}` }]
+          return [false, { ...error, path: `${itemPath}.${error?.path ?? 'unknown'}` }]
         }
       }
     }
@@ -79,7 +79,7 @@ function validateValue(value: unknown, schemaValue: SchemaValue, path: string): 
   const result = validate(value, schemaValue)
   if (!result[0]) {
     const error = result[1]
-    return [false, { ...error, path: `${path}.${error.path}` }]
+    return [false, { ...error, path: `${path}.${error?.path ?? 'unknown'}` }]
   }
   return [true, null]
 }

@@ -1,16 +1,16 @@
 export function extractPosition(error: Error): number | undefined {
-  const message = error.message
+  const message = error?.message ?? ''
   
   // Try to extract position from SyntaxError message
   // JSON.parse error format: "Unexpected token X in JSON at position Y"
   const positionMatch = message.match(/position (\d+)/i)
-  if (positionMatch) {
-    return parseInt(positionMatch[1], 10)
+  if (positionMatch?.[1]) {
+    return parseInt(positionMatch?.[1], 10)
   }
   
   // Try to extract from "at line X column Y" format
   const lineMatch = message.match(/line (\d+)/i)
-  if (lineMatch) {
+  if (lineMatch?.[1]) {
     // Approximate position (not exact, but better than nothing)
     const line = parseInt(lineMatch[1], 10)
     return (line - 1) * 80 // Rough estimate
@@ -38,7 +38,7 @@ export function formatError(
   position?: number,
   context?: string
 ): string {
-  const baseMessage = error.message
+  const baseMessage = error?.message ?? 'Unknown error'
   
   if (position !== undefined && context) {
     return `Invalid JSON at position ${position}: ${baseMessage}\nContext: ...${context}...`

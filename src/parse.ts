@@ -104,7 +104,7 @@ export function parse<T = unknown>(value: string, options?: ParseOptions<T>): T 
     if (options?.schema) {
       const [valid, error] = validate(sanitized, options.schema)
       if (!valid) {
-        throw new Error(error.message)
+        throw new Error(error?.message ?? 'Validation failed')
       }
     }
     
@@ -128,7 +128,7 @@ export function tryParse<T = unknown>(
       : reviver
     return [JSON.parse(value, finalReviver) as T, null]
   } catch (error) {
-    return [null, error as Error]
+    return [null, error instanceof Error ? error : new Error(String(error))]
   }
 }
 
@@ -162,7 +162,7 @@ export function parseWithDetails<T = unknown>(
       if (!valid) {
         return {
           success: false,
-          error: error.message,
+          error: error?.message ?? 'Validation failed',
           position: undefined,
           context: undefined
         }
@@ -174,7 +174,7 @@ export function parseWithDetails<T = unknown>(
       data: sanitized
     }
   } catch (error) {
-    const err = error as Error
+    const err = error instanceof Error ? error : new Error(String(error))
     const position = extractPosition(err)
     const context = position !== undefined ? getContext(value, position) : undefined
     const formattedError = formatError(err, position, context)

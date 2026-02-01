@@ -97,7 +97,7 @@ export function tryStringify(value: unknown, options?: StringifyOptions | number
     const result = JSON.stringify(valueToStringify, createCircularReplacer(replacer), space)
     return [result, null]
   } catch (error) {
-    return [null, error as Error]
+    return [null, error instanceof Error ? error : new Error(String(error))]
   }
 }
 

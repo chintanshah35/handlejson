@@ -37,7 +37,9 @@ export async function parseStream<T = unknown>(
           const { done, value } = await reader.read()
           if (done) break
           
-          text += decoder.decode(value, { stream: true })
+          if (value) {
+            text += decoder.decode(value, { stream: true })
+          }
           
           if (options?.onProgress) {
             try {
@@ -49,7 +51,7 @@ export async function parseStream<T = unknown>(
           }
         }
       } finally {
-        reader.releaseLock()
+        reader?.releaseLock()
       }
     }
     
