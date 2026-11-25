@@ -1,6 +1,17 @@
 # handlejson
 
-> JSON, handled. Safe parse, stringify, format, validate.
+JSON, handled. Safe parse, stringify, format, validate. Zero dependencies.
+
+```bash
+npm install handlejson
+```
+
+```typescript
+import { parse, stringify } from 'handlejson'
+
+const data = parse('{"name":"John"}')  // { name: 'John' }
+const json = stringify({ name: 'John' })  // '{"name":"John"}'
+```
 
 [![npm version](https://img.shields.io/npm/v/handlejson.svg)](https://www.npmjs.com/package/handlejson)
 [![npm downloads](https://img.shields.io/npm/dm/handlejson.svg)](https://www.npmjs.com/package/handlejson)
@@ -8,12 +19,6 @@
 [![node](https://img.shields.io/node/v/handlejson.svg)](https://nodejs.org)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/handlejson)](https://bundlephobia.com/package/handlejson)
 [![license](https://img.shields.io/npm/l/handlejson.svg)](https://github.com/chintanshah35/handlejson/blob/main/LICENSE)
-
-## Install
-
-```bash
-npm install handlejson
-```
 
 **v1.0.0** - 244 tests, performance improvements, ready for production.
 
@@ -403,6 +408,8 @@ Learn more about handlejson:
 
 - **[Introducing handlejson: Safe JSON Parsing Without the Try-Catch Spam](https://dev.to/chintanshah35/introducing-handlejson-safe-json-parsing-without-the-try-catch-spam-1oh3)** - Dev.to
 - **[JSON Parsing Without the Tears: A Better Approach to Error Handling](https://medium.com/@chintanshah35/json-parsing-without-the-tears-a-better-approach-to-error-handling-2e569d28acb4)** - Medium
+
+If this saved you try/catch noise, star the repo so others can find it.
 
 ## License
 
